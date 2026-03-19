@@ -1,16 +1,11 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-
-import * as costTrackingSchema from '@/modules/cost-tracking/schema';
+import { db } from '@/lib/db';
 import { makeUsageRecordRepository } from '@/modules/cost-tracking/infrastructure/repositories/DrizzleUsageRecordRepository';
 import { makeGetUsageSummaryUseCase } from '@/modules/cost-tracking/application/getUsageSummaryUseCase';
 import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/domain/repositories';
 import { ProviderCards } from './_components/ProviderCards';
 import { UsageSummaryTable } from './_components/UsageSummaryTable';
 import { DailySpendTable } from './_components/DailySpendTable';
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool, { schema: costTrackingSchema });
+import { SyncButton } from './_components/SyncButton';
 
 type SearchParams = Promise<{ from?: string; to?: string }>;
 
@@ -113,7 +108,10 @@ export default async function CostTrackingPage({
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
-      <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
+        <SyncButton />
+      </div>
 
       <ProviderCards data={byProvider.map(toProviderSummary)} />
 
