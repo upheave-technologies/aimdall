@@ -1,7 +1,7 @@
 type SummaryRow = {
   provider: string;
   model: string;
-  credentialId: string;
+  credential: string;
   accountSegment?: string;
   totalInputTokens: number;
   totalOutputTokens: number;
@@ -9,12 +9,6 @@ type SummaryRow = {
   totalCacheCreationTokens: number;
   totalRequests: number;
   totalCostUsd: string;
-};
-
-const PROVIDER_LABELS: Record<string, string> = {
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  google_vertex: 'Vertex AI',
 };
 
 function formatTokens(n: number): string {
@@ -81,10 +75,10 @@ export function UsageSummaryTable({
                   className="border-b border-foreground/5 last:border-0"
                 >
                   <td className="px-4 py-2">
-                    {PROVIDER_LABELS[row.provider] ?? row.provider}
+                    {row.provider}
                   </td>
                   <td className="px-4 py-2 font-mono text-xs">
-                    {groupBy === 'model' ? row.model : row.credentialId}
+                    {groupBy === 'model' ? row.model : row.credential}
                   </td>
                   {groupBy === 'credential' && (
                     <td className="px-4 py-2 text-foreground/60">

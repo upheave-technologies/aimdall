@@ -6,12 +6,6 @@ type ProviderSummary = {
   totalOutputTokens: number;
 };
 
-const PROVIDER_LABELS: Record<string, string> = {
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  google_vertex: 'Google Vertex AI',
-};
-
 export function ProviderCards({ data }: { data: ProviderSummary[] }) {
   const totalCost = data.reduce(
     (sum, row) => sum + parseFloat(row.totalCostUsd || '0'),
@@ -36,7 +30,7 @@ export function ProviderCards({ data }: { data: ProviderSummary[] }) {
               className="rounded-lg border border-foreground/10 p-4"
             >
               <p className="text-sm text-foreground/60">
-                {PROVIDER_LABELS[row.provider] ?? row.provider}
+                {row.provider}
               </p>
               <p className="text-2xl font-semibold">${cost.toFixed(2)}</p>
               <div className="mt-2 flex gap-4 text-xs text-foreground/50">

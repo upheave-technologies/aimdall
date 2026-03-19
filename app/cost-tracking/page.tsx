@@ -14,7 +14,7 @@ type SearchParams = Promise<{ from?: string; to?: string }>;
 // ---------------------------------------------------------------------------
 
 type LegacyProviderSummary = {
-  provider: string;
+  provider: string; // providerDisplayName
   totalCostUsd: string;
   totalRequests: number;
   totalInputTokens: number;
@@ -22,10 +22,10 @@ type LegacyProviderSummary = {
 };
 
 type LegacySummaryRow = {
-  provider: string;
+  provider: string; // providerDisplayName
   model: string;
-  credentialId: string;
-  accountSegment?: string;
+  credential: string; // formatted label, e.g. "Production API Key (•••• hmiT)"
+  accountSegment?: string; // segmentDisplayName
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCachedInputTokens: number;
@@ -36,7 +36,8 @@ type LegacySummaryRow = {
 
 type LegacyDailySpendRow = {
   date: string;
-  provider: string;
+  providerSlug: string;
+  providerDisplayName: string;
   totalCostUsd: string;
   totalRequests: number;
   totalInputTokens: number;
@@ -45,7 +46,7 @@ type LegacyDailySpendRow = {
 
 function toProviderSummary(row: UsageSummaryRow): LegacyProviderSummary {
   return {
-    provider: row.providerId,
+    provider: row.providerDisplayName,
     totalCostUsd: row.totalCost,
     totalRequests: row.totalRequests,
     totalInputTokens: row.totalInputTokens,
@@ -53,12 +54,18 @@ function toProviderSummary(row: UsageSummaryRow): LegacyProviderSummary {
   };
 }
 
+function formatCredential(row: UsageSummaryRow): string {
+  if (!row.credentialLabel) return row.credentialId ?? '—';
+  if (row.credentialKeyHint) return `${row.credentialLabel} (•••• ${row.credentialKeyHint})`;
+  return row.credentialLabel;
+}
+
 function toSummaryRow(row: UsageSummaryRow): LegacySummaryRow {
   return {
-    provider: row.providerId,
+    provider: row.providerDisplayName,
     model: row.modelSlug,
-    credentialId: row.credentialId ?? row.segmentId ?? '—',
-    accountSegment: row.segmentId,
+    credential: formatCredential(row),
+    accountSegment: row.segmentDisplayName,
     totalInputTokens: row.totalInputTokens,
     totalOutputTokens: row.totalOutputTokens,
     totalCachedInputTokens: row.totalCachedInputTokens,
@@ -71,7 +78,8 @@ function toSummaryRow(row: UsageSummaryRow): LegacySummaryRow {
 function toDailySpendRow(row: DailySpendRow): LegacyDailySpendRow {
   return {
     date: row.date,
-    provider: row.providerId,
+    providerSlug: row.providerSlug,
+    providerDisplayName: row.providerDisplayName,
     totalCostUsd: row.totalCost,
     totalRequests: row.totalRequests,
     totalInputTokens: row.totalInputTokens,

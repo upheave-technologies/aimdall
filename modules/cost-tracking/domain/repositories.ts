@@ -48,13 +48,27 @@ import { ServiceCategory } from './model';
  * All token counts and costs are summed across the requested date range.
  * totalCost is a numeric string matching the calculatedCostAmount precision
  * convention (8 decimal places) to prevent IEEE-754 rounding.
+ *
+ * Display name fields are populated via JOIN at query time so the UI never
+ * needs a secondary lookup to render human-readable labels.
  */
 export type UsageSummaryRow = {
+  /** Internal UUID from cost_tracking_providers. */
   providerId: string;
+  /** Machine-readable slug, e.g. 'openai', 'anthropic'. */
+  providerSlug: string;
+  /** Human-readable provider name, e.g. 'OpenAI', 'Anthropic'. */
+  providerDisplayName: string;
   modelSlug: string;
   serviceCategory: ServiceCategory;
   credentialId?: string;
+  /** Human-readable label for the credential, e.g. 'Production API Key'. */
+  credentialLabel?: string;
+  /** Last-4 hint for display, e.g. 'hmiT'. Absent when credential has no hint. */
+  credentialKeyHint?: string;
   segmentId?: string;
+  /** Human-readable name for the segment, e.g. 'Default Workspace'. */
+  segmentDisplayName?: string;
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCachedInputTokens: number;
@@ -66,7 +80,12 @@ export type UsageSummaryRow = {
 /** A row of daily spend, aggregated by date. */
 export type DailySpendRow = {
   date: string; // YYYY-MM-DD
+  /** Internal UUID from cost_tracking_providers. */
   providerId: string;
+  /** Machine-readable slug, e.g. 'openai', 'anthropic'. */
+  providerSlug: string;
+  /** Human-readable provider name, e.g. 'OpenAI', 'Anthropic'. */
+  providerDisplayName: string;
   totalCost: string;
   totalRequests: number;
   totalInputTokens: number;

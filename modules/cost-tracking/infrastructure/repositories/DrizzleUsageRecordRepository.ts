@@ -22,8 +22,11 @@
 //   await repository.upsertBatch(records);
 // =============================================================================
 
-import { sql, and, isNull, gte, lte } from 'drizzle-orm';
+import { sql, and, isNull, gte, lte, eq } from 'drizzle-orm';
 import { costTrackingUsageRecords } from '../../schema/usageRecords';
+import { costTrackingProviders } from '../../schema/providers';
+import { costTrackingProviderCredentials } from '../../schema/providerCredentials';
+import { costTrackingProviderSegments } from '../../schema/providerSegments';
 import { UsageRecord } from '../../domain/usageRecord';
 import {
   IUsageRecordRepository,
@@ -172,12 +175,15 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
 
   /**
    * Aggregate token and cost totals grouped by provider.
+   * JOINs cost_tracking_providers to enrich each row with slug and displayName.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).
    */
   async findSummaryByProvider(startDate: Date, endDate: Date): Promise<UsageSummaryRow[]> {
     const rows = await db
       .select({
         providerId: costTrackingUsageRecords.providerId,
+        providerSlug: costTrackingProviders.slug,
+        providerDisplayName: costTrackingProviders.displayName,
         serviceCategory: costTrackingUsageRecords.serviceCategory,
         totalInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.inputTokens}), 0)::bigint`,
         totalOutputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.outputTokens}), 0)::bigint`,
@@ -186,6 +192,10 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
         totalCost: sql<string>`COALESCE(SUM(${costTrackingUsageRecords.calculatedCostAmount}), 0)::numeric(16,8)::text`,
       })
       .from(costTrackingUsageRecords)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingUsageRecords.providerId, costTrackingProviders.id),
+      )
       .where(
         and(
           isNull(costTrackingUsageRecords.deletedAt),
@@ -193,10 +203,17 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
           lte(costTrackingUsageRecords.bucketStart, endDate),
         ),
       )
-      .groupBy(costTrackingUsageRecords.providerId, costTrackingUsageRecords.serviceCategory);
+      .groupBy(
+        costTrackingUsageRecords.providerId,
+        costTrackingProviders.slug,
+        costTrackingProviders.displayName,
+        costTrackingUsageRecords.serviceCategory,
+      );
 
     return rows.map((row) => ({
       providerId: row.providerId,
+      providerSlug: row.providerSlug,
+      providerDisplayName: row.providerDisplayName,
       modelSlug: '*',
       serviceCategory: row.serviceCategory as ServiceCategory,
       totalInputTokens: Number(row.totalInputTokens),
@@ -210,12 +227,15 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
 
   /**
    * Aggregate token and cost totals grouped by provider + model slug.
+   * JOINs cost_tracking_providers to enrich each row with slug and displayName.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).
    */
   async findSummaryByModel(startDate: Date, endDate: Date): Promise<UsageSummaryRow[]> {
     const rows = await db
       .select({
         providerId: costTrackingUsageRecords.providerId,
+        providerSlug: costTrackingProviders.slug,
+        providerDisplayName: costTrackingProviders.displayName,
         modelSlug: costTrackingUsageRecords.modelSlug,
         serviceCategory: costTrackingUsageRecords.serviceCategory,
         totalInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.inputTokens}), 0)::bigint`,
@@ -225,6 +245,10 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
         totalCost: sql<string>`COALESCE(SUM(${costTrackingUsageRecords.calculatedCostAmount}), 0)::numeric(16,8)::text`,
       })
       .from(costTrackingUsageRecords)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingUsageRecords.providerId, costTrackingProviders.id),
+      )
       .where(
         and(
           isNull(costTrackingUsageRecords.deletedAt),
@@ -234,12 +258,16 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       )
       .groupBy(
         costTrackingUsageRecords.providerId,
+        costTrackingProviders.slug,
+        costTrackingProviders.displayName,
         costTrackingUsageRecords.modelSlug,
         costTrackingUsageRecords.serviceCategory,
       );
 
     return rows.map((row) => ({
       providerId: row.providerId,
+      providerSlug: row.providerSlug,
+      providerDisplayName: row.providerDisplayName,
       modelSlug: row.modelSlug,
       serviceCategory: row.serviceCategory as ServiceCategory,
       totalInputTokens: Number(row.totalInputTokens),
@@ -253,15 +281,21 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
 
   /**
    * Aggregate token and cost totals grouped by credentialId.
+   * JOINs cost_tracking_providers (INNER) and cost_tracking_provider_credentials
+   * (LEFT — credentialId is nullable) to enrich rows with human-readable labels.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).
    */
   async findSummaryByCredential(startDate: Date, endDate: Date): Promise<UsageSummaryRow[]> {
     const rows = await db
       .select({
         providerId: costTrackingUsageRecords.providerId,
+        providerSlug: costTrackingProviders.slug,
+        providerDisplayName: costTrackingProviders.displayName,
         modelSlug: costTrackingUsageRecords.modelSlug,
         serviceCategory: costTrackingUsageRecords.serviceCategory,
         credentialId: costTrackingUsageRecords.credentialId,
+        credentialLabel: costTrackingProviderCredentials.label,
+        credentialKeyHint: costTrackingProviderCredentials.keyHint,
         totalInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.inputTokens}), 0)::bigint`,
         totalOutputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.outputTokens}), 0)::bigint`,
         totalCachedInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.cachedInputTokens}), 0)::bigint`,
@@ -269,6 +303,14 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
         totalCost: sql<string>`COALESCE(SUM(${costTrackingUsageRecords.calculatedCostAmount}), 0)::numeric(16,8)::text`,
       })
       .from(costTrackingUsageRecords)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingUsageRecords.providerId, costTrackingProviders.id),
+      )
+      .leftJoin(
+        costTrackingProviderCredentials,
+        eq(costTrackingUsageRecords.credentialId, costTrackingProviderCredentials.id),
+      )
       .where(
         and(
           isNull(costTrackingUsageRecords.deletedAt),
@@ -278,16 +320,24 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       )
       .groupBy(
         costTrackingUsageRecords.providerId,
+        costTrackingProviders.slug,
+        costTrackingProviders.displayName,
         costTrackingUsageRecords.modelSlug,
         costTrackingUsageRecords.serviceCategory,
         costTrackingUsageRecords.credentialId,
+        costTrackingProviderCredentials.label,
+        costTrackingProviderCredentials.keyHint,
       );
 
     return rows.map((row) => ({
       providerId: row.providerId,
+      providerSlug: row.providerSlug,
+      providerDisplayName: row.providerDisplayName,
       modelSlug: row.modelSlug,
       serviceCategory: row.serviceCategory as ServiceCategory,
       credentialId: row.credentialId ?? undefined,
+      credentialLabel: row.credentialLabel ?? undefined,
+      credentialKeyHint: row.credentialKeyHint ?? undefined,
       totalInputTokens: Number(row.totalInputTokens),
       totalOutputTokens: Number(row.totalOutputTokens),
       totalCachedInputTokens: Number(row.totalCachedInputTokens),
@@ -299,15 +349,20 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
 
   /**
    * Aggregate token and cost totals grouped by segmentId.
+   * JOINs cost_tracking_providers (INNER) and cost_tracking_provider_segments
+   * (LEFT — segmentId is nullable) to enrich rows with human-readable names.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).
    */
   async findSummaryBySegment(startDate: Date, endDate: Date): Promise<UsageSummaryRow[]> {
     const rows = await db
       .select({
         providerId: costTrackingUsageRecords.providerId,
+        providerSlug: costTrackingProviders.slug,
+        providerDisplayName: costTrackingProviders.displayName,
         modelSlug: costTrackingUsageRecords.modelSlug,
         serviceCategory: costTrackingUsageRecords.serviceCategory,
         segmentId: costTrackingUsageRecords.segmentId,
+        segmentDisplayName: costTrackingProviderSegments.displayName,
         totalInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.inputTokens}), 0)::bigint`,
         totalOutputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.outputTokens}), 0)::bigint`,
         totalCachedInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.cachedInputTokens}), 0)::bigint`,
@@ -315,6 +370,14 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
         totalCost: sql<string>`COALESCE(SUM(${costTrackingUsageRecords.calculatedCostAmount}), 0)::numeric(16,8)::text`,
       })
       .from(costTrackingUsageRecords)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingUsageRecords.providerId, costTrackingProviders.id),
+      )
+      .leftJoin(
+        costTrackingProviderSegments,
+        eq(costTrackingUsageRecords.segmentId, costTrackingProviderSegments.id),
+      )
       .where(
         and(
           isNull(costTrackingUsageRecords.deletedAt),
@@ -324,16 +387,22 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       )
       .groupBy(
         costTrackingUsageRecords.providerId,
+        costTrackingProviders.slug,
+        costTrackingProviders.displayName,
         costTrackingUsageRecords.modelSlug,
         costTrackingUsageRecords.serviceCategory,
         costTrackingUsageRecords.segmentId,
+        costTrackingProviderSegments.displayName,
       );
 
     return rows.map((row) => ({
       providerId: row.providerId,
+      providerSlug: row.providerSlug,
+      providerDisplayName: row.providerDisplayName,
       modelSlug: row.modelSlug,
       serviceCategory: row.serviceCategory as ServiceCategory,
       segmentId: row.segmentId ?? undefined,
+      segmentDisplayName: row.segmentDisplayName ?? undefined,
       totalInputTokens: Number(row.totalInputTokens),
       totalOutputTokens: Number(row.totalOutputTokens),
       totalCachedInputTokens: Number(row.totalCachedInputTokens),
@@ -345,6 +414,7 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
 
   /**
    * Aggregate cost and usage grouped by calendar day and provider.
+   * JOINs cost_tracking_providers to enrich each row with slug and displayName.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).
    * Results are ordered chronologically.
    */
@@ -353,12 +423,18 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       .select({
         date: sql<string>`DATE(${costTrackingUsageRecords.bucketStart})::text`,
         providerId: costTrackingUsageRecords.providerId,
+        providerSlug: costTrackingProviders.slug,
+        providerDisplayName: costTrackingProviders.displayName,
         totalCost: sql<string>`COALESCE(SUM(${costTrackingUsageRecords.calculatedCostAmount}), 0)::numeric(16,8)::text`,
         totalRequests: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.requestCount}), 0)::bigint`,
         totalInputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.inputTokens}), 0)::bigint`,
         totalOutputTokens: sql<number>`COALESCE(SUM(${costTrackingUsageRecords.outputTokens}), 0)::bigint`,
       })
       .from(costTrackingUsageRecords)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingUsageRecords.providerId, costTrackingProviders.id),
+      )
       .where(
         and(
           isNull(costTrackingUsageRecords.deletedAt),
@@ -369,12 +445,16 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       .groupBy(
         sql`DATE(${costTrackingUsageRecords.bucketStart})`,
         costTrackingUsageRecords.providerId,
+        costTrackingProviders.slug,
+        costTrackingProviders.displayName,
       )
       .orderBy(sql`DATE(${costTrackingUsageRecords.bucketStart})`);
 
     return rows.map((row) => ({
       date: row.date,
       providerId: row.providerId,
+      providerSlug: row.providerSlug,
+      providerDisplayName: row.providerDisplayName,
       totalCost: String(row.totalCost),
       totalRequests: Number(row.totalRequests),
       totalInputTokens: Number(row.totalInputTokens),

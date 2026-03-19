@@ -1,16 +1,11 @@
 type DailySpendRow = {
   date: string;
-  provider: string;
+  providerSlug: string;
+  providerDisplayName: string;
   totalCostUsd: string;
   totalRequests: number;
   totalInputTokens: number;
   totalOutputTokens: number;
-};
-
-const PROVIDER_LABELS: Record<string, string> = {
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  google_vertex: 'Vertex AI',
 };
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -46,8 +41,8 @@ export function DailySpendTable({ data }: { data: DailySpendRow[] }) {
 
     existing.total += cost;
     existing.providers.set(
-      row.provider,
-      (existing.providers.get(row.provider) ?? 0) + cost,
+      row.providerSlug,
+      (existing.providers.get(row.providerSlug) ?? 0) + cost,
     );
     existing.requests += row.totalRequests;
     existing.tokens += row.totalInputTokens + row.totalOutputTokens;
@@ -60,7 +55,10 @@ export function DailySpendTable({ data }: { data: DailySpendRow[] }) {
 
   // Sort dates descending (most recent first)
   const dates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
-  const allProviders = [...new Set(data.map((r) => r.provider))].sort();
+  const allProviderSlugs = [...new Set(data.map((r) => r.providerSlug))].sort();
+  const slugToDisplayName = new Map(
+    data.map((r) => [r.providerSlug, r.providerDisplayName]),
+  );
 
   return (
     <div>
@@ -93,16 +91,16 @@ export function DailySpendTable({ data }: { data: DailySpendRow[] }) {
                   <td className="px-4 py-2 font-mono text-xs">{date}</td>
                   <td className="px-4 py-2">
                     <div className="flex h-4 w-full overflow-hidden rounded-sm">
-                      {allProviders.map((provider) => {
-                        const providerCost = day.providers.get(provider) ?? 0;
+                      {allProviderSlugs.map((slug) => {
+                        const providerCost = day.providers.get(slug) ?? 0;
                         if (providerCost === 0) return null;
                         const segmentWidth = (providerCost / day.total) * barWidth;
                         return (
                           <div
-                            key={provider}
-                            className={`${PROVIDER_COLORS[provider] ?? 'bg-gray-500'} h-full`}
+                            key={slug}
+                            className={`${PROVIDER_COLORS[slug] ?? 'bg-gray-500'} h-full`}
                             style={{ width: `${segmentWidth}%` }}
-                            title={`${PROVIDER_LABELS[provider] ?? provider}: $${providerCost.toFixed(2)}`}
+                            title={`${slugToDisplayName.get(slug) ?? slug}: $${providerCost.toFixed(2)}`}
                           />
                         );
                       })}
@@ -123,12 +121,12 @@ export function DailySpendTable({ data }: { data: DailySpendRow[] }) {
           </tbody>
         </table>
 
-        {allProviders.length > 1 && (
+        {allProviderSlugs.length > 1 && (
           <div className="flex gap-4 border-t border-foreground/5 px-4 py-2">
-            {allProviders.map((provider) => (
-              <div key={provider} className="flex items-center gap-1.5 text-xs text-foreground/60">
-                <div className={`h-2.5 w-2.5 rounded-sm ${PROVIDER_COLORS[provider] ?? 'bg-gray-500'}`} />
-                {PROVIDER_LABELS[provider] ?? provider}
+            {allProviderSlugs.map((slug) => (
+              <div key={slug} className="flex items-center gap-1.5 text-xs text-foreground/60">
+                <div className={`h-2.5 w-2.5 rounded-sm ${PROVIDER_COLORS[slug] ?? 'bg-gray-500'}`} />
+                {slugToDisplayName.get(slug) ?? slug}
               </div>
             ))}
           </div>
