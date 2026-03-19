@@ -149,33 +149,38 @@ export default async function SomePage({ searchParams }: Props) {
 
 ---
 
-# CRITICAL RULE: CALL USE CASES DIRECTLY
+# CRITICAL RULE: IMPORT FROM MODULE BARRELS ONLY
 
-**SERVER COMPONENTS MUST CALL USE CASES DIRECTLY, NEVER HTTP ROUTES.**
+**Server Components and Server Actions MUST import ONLY from module barrels (e.g., `@/modules/mymodule`). NEVER import from module internals or core packages.**
 
 ```typescript
-// ❌ NEVER DO THIS - Causes infinite loading
-export default async function Page() {
-  const data = await fetch('http://localhost:3000/api/campaigns')
-  return null
-}
-
-// ✅ ALWAYS DO THIS - Direct use case call
+// ❌ NEVER DO THIS — imports from module internals
 import { makeGetCampaignsUseCase } from '@/modules/campaigns/application/getCampaignsUseCase'
 import { PrismaCampaignRepositoryInstance } from '@/modules/campaigns/infrastructure/PrismaCampaignRepository'
+import { getOrganizationSession } from '@/packages/@core/session/infrastructure/sessionHelpers'
+
+// ✅ ALWAYS DO THIS — import from the module barrel
+import { getCampaigns, getSession } from '@/modules/campaigns'
 
 export default async function Page() {
-  const useCase = makeGetCampaignsUseCase(PrismaCampaignRepositoryInstance)
-  const result = await useCase()
+  const session = await getSession()
+  if (!session) redirect('/login')
+  const result = await getCampaigns({ organizationId: session.organizationId })
   return null  // Frankie adds JSX
 }
 ```
 
 **WHY:**
-- Server Components run ON THE SERVER
-- They have DIRECT ACCESS to use cases
-- Using fetch() adds unnecessary HTTP layer
-- It causes connection timeouts and infinite loading
+- Module barrels export pre-wired use cases — no factory instantiation needed
+- The composition root, repositories, and infrastructure are PRIVATE to the module
+- Business logic lives in use cases, not in pages or actions
+- The architecture-guard hook BLOCKS internal imports — they will be denied
+
+**FORBIDDEN IMPORT PATTERNS (will be blocked by hook):**
+- `from '@/modules/*/infrastructure/*'`
+- `from '@/modules/*/application/*'`
+- `from '@/modules/*/domain/*'`
+- `from '@/packages/@core/*'`
 
 ---
 
@@ -183,11 +188,8 @@ export default async function Page() {
 
 ```typescript
 // app/(app)/campaigns/page.tsx
-import { redirect, notFound } from 'next/navigation'
-import { getOrganizationSession } from '@/modules/organization/infrastructure/sessionHelpers'
-import { createUserAbility } from '@/modules/iam/infrastructure/sessionAuthHelpers'
-import { makeGetCampaignsUseCase } from '@/modules/campaigns/application/getCampaignsUseCase'
-import { PrismaCampaignRepositoryInstance } from '@/modules/campaigns/infrastructure/PrismaCampaignRepository'
+import { redirect } from 'next/navigation'
+import { getSession, getCampaigns, buildAbility } from '@/modules/campaigns'
 
 type SearchParams = {
   search?: string
@@ -201,14 +203,12 @@ export default async function CampaignsPage({
   searchParams: Promise<SearchParams>
 }) {
   // 1. AUTHENTICATION
-  const session = await getOrganizationSession()
-  if (!session?.user) redirect('/login')
+  const session = await getSession()
+  if (!session) redirect('/login')
 
   // 2. AUTHORIZATION
-  const ability = await createUserAbility(session.user.id)
-  if (!ability.can('read', 'Campaign')) {
-    redirect('/unauthorized')
-  }
+  const ability = await buildAbility({ principalId: session.principalId })
+  if (!ability.can('read', 'Campaign')) redirect('/unauthorized')
 
   // 3. URL PARAMETER PARSING
   const params = await searchParams
@@ -218,9 +218,8 @@ export default async function CampaignsPage({
     page: parseInt(params.page || '1'),
   }
 
-  // 4. DATA FETCHING (Direct use case call)
-  const getCampaignsUseCase = makeGetCampaignsUseCase(PrismaCampaignRepositoryInstance)
-  const result = await getCampaignsUseCase({
+  // 4. DATA FETCHING (pre-wired use case from barrel)
+  const result = await getCampaigns({
     organizationId: session.organizationId,
     filters,
   })
@@ -231,11 +230,11 @@ export default async function CampaignsPage({
   }
 
   // 6. RETURN NULL - Frankie adds JSX later
-  // Frankie will import components and render the data
-  // Data available: result.value (campaigns), filters, session
   return null
 }
 ```
+
+**KEY: All imports come from the module barrel (`@/modules/campaigns`). NEVER from internal paths.**
 
 ---
 
@@ -247,54 +246,44 @@ export default async function CampaignsPage({
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { getOrganizationSession } from '@/modules/organization/infrastructure/sessionHelpers'
-import { createUserAbility } from '@/modules/iam/infrastructure/sessionAuthHelpers'
-import { makeCreateCampaignUseCase } from '@/modules/campaigns/application/createCampaignUseCase'
-import { PrismaCampaignRepositoryInstance } from '@/modules/campaigns/infrastructure/PrismaCampaignRepository'
+import { getSession, createCampaign, type ActionResult } from '@/modules/campaigns'
 
-export async function createCampaignAction(formData: FormData) {
+export async function createCampaignAction(
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
   // 1. AUTHENTICATION
-  const session = await getOrganizationSession()
-  if (!session?.user) {
-    return { error: 'Unauthorized' }
+  const session = await getSession()
+  if (!session) {
+    return { success: false, error: 'Unauthorized', code: 'UNAUTHENTICATED' }
   }
 
-  // 2. AUTHORIZATION
-  const ability = await createUserAbility(session.user.id)
-  if (!ability.can('create', 'Campaign')) {
-    return { error: 'Permission denied' }
-  }
-
-  // 3. EXTRACT FORM DATA
+  // 2. EXTRACT FORM DATA
   const name = formData.get('name') as string
-  const budget = parseFloat(formData.get('budget') as string)
+  const budget = formData.get('budget') as string
 
-  // 4. SERVER-SIDE VALIDATION
-  if (!name || name.length < 3) {
-    return { error: 'Name must be at least 3 characters' }
-  }
-  if (isNaN(budget) || budget <= 0) {
-    return { error: 'Budget must be a positive number' }
+  // 3. PRESENCE VALIDATION ONLY (NOT business rules)
+  if (!name || !budget) {
+    return { success: false, error: 'All fields required', code: 'VALIDATION_ERROR' }
   }
 
-  // 5. CALL USE CASE
-  const createCampaignUseCase = makeCreateCampaignUseCase(PrismaCampaignRepositoryInstance)
-  const result = await createCampaignUseCase({
+  // 4. CALL ONE USE CASE (pre-wired from barrel)
+  const result = await createCampaign({
     organizationId: session.organizationId,
     name,
-    budget,
+    budget: parseFloat(budget),
   })
 
-  // 6. HANDLE RESULT
+  // 5. RETURN RESULT
   if (!result.success) {
-    return { error: result.error.message }
+    return { success: false, error: result.error.message, code: result.error.code }
   }
 
-  // 7. REVALIDATE AND REDIRECT
   revalidatePath('/campaigns')
   redirect(`/campaigns/${result.value.id}`)
 }
 ```
+
+**KEY: All imports from the module barrel. No factory instantiation. No infrastructure imports. No core package imports. The action is a thin adapter — extract, validate presence, call ONE use case, return.**
 
 ---
 
@@ -373,13 +362,11 @@ export const config = {
 ```typescript
 // app/api/campaigns/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getOrganizationSession } from '@/modules/organization/infrastructure/sessionHelpers'
-import { makeGetCampaignsUseCase } from '@/modules/campaigns/application/getCampaignsUseCase'
-import { PrismaCampaignRepositoryInstance } from '@/modules/campaigns/infrastructure/PrismaCampaignRepository'
+import { getSession, getCampaigns } from '@/modules/campaigns'
 
 export async function GET(request: NextRequest) {
   // Authentication
-  const session = await getOrganizationSession()
+  const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -388,9 +375,8 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const status = searchParams.get('status')
 
-  // Call use case
-  const getCampaignsUseCase = makeGetCampaignsUseCase(PrismaCampaignRepositoryInstance)
-  const result = await getCampaignsUseCase({
+  // Call pre-wired use case from barrel
+  const result = await getCampaigns({
     organizationId: session.organizationId,
     filters: { status },
   })
@@ -402,6 +388,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(result.value)
 }
 ```
+
+**KEY: Same barrel-only pattern. No factory instantiation. No infrastructure imports.**
 
 ---
 

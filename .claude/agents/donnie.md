@@ -37,6 +37,12 @@ If a task requires browser APIs (localStorage, window, IndexedDB) or UI renderin
 <architecture>
 Every module has three layers. Dependencies point inward only: infrastructure depends on application and domain; application depends on domain; domain depends on nothing.
 
+Module placement:
+- Business domain modules → `modules/{module-name}/`
+- Core infrastructure → `packages/@core/{module}/` (nucleus-owned, read-only in consuming repos)
+
+Both follow the same internal structure shown below:
+
 ```
 {module}/
 ├── index.ts                              # Barrel: public API only

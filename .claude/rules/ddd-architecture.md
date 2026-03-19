@@ -32,8 +32,20 @@ Each layer calls only the layer directly below it. Skipping layers is an archite
 
 6. **YAGNI applies to features, not to architecture.** Build only what the task requires. But always use the layered structure — it is the foundation that makes future change low-cost.
 
+## The Module Barrel Boundary
+
+Every module exports a barrel (`index.ts`) that is its **only public API**. The barrel exports pre-wired use cases, session utilities, and re-exported types. Everything else — the composition root, repositories, domain internals, use case factories — is private to the module.
+
+**Files in `app/` (server actions, pages, layouts, routes) MUST import exclusively from module barrels.** They must NEVER import from:
+- `modules/*/infrastructure/` (composition root, repositories, session internals)
+- `modules/*/domain/` (types, validation — re-exported through the barrel)
+- `modules/*/application/` (use case factories — pre-wired through the barrel)
+- `packages/@core/*` (core packages — re-exported through the barrel)
+
+This is the most commonly violated rule. If a server action needs a use case, it imports the pre-wired instance from the barrel. If it needs a type, the barrel re-exports it. There is no reason for `app/` code to reach past the barrel.
+
 ## The Repository Boundary
 
 All external access — databases, APIs, file storage, third-party services — is encapsulated behind repository interfaces. The domain layer defines what it needs (the interface). The infrastructure layer provides how it works (the implementation). Use cases orchestrate repositories; they never access external services directly.
 
-This is the most commonly violated rule. If code touches a database, calls an API, or reads from storage, it must be inside a repository implementation in the infrastructure layer.
+If code touches a database, calls an API, or reads from storage, it must be inside a repository implementation in the infrastructure layer.

@@ -37,6 +37,7 @@ The **custom zone** at the bottom is yours — add project-specific instructions
 |-------|-------------|
 | **archie** | Database architect — schema design, migrations, data modeling |
 | **donnie** | Backend DDD engineer — use cases, repositories, API routes |
+| **frankie** | Frontend specialist — React components, containers, JSX, design systems |
 | **nexus** | Next.js server-side specialist — Server Components, Server Actions |
 | **plancton** | Project planner — task breakdown and implementation planning |
 | **prince** | Product requirements analyst — PRD creation and discovery |
@@ -51,7 +52,12 @@ The following architectural rules are enforced in this project:
 - **ddd-architecture**: Core DDD principles — layered architecture, inward dependencies, functional patterns
 - **domain-layer**: Domain layer patterns — entities, value objects, repository interfaces
 - **infrastructure-layer**: Infrastructure layer patterns — repository implementations, external services
+- **nucleus-readonly**: Instructs agents that nucleus-installed package files are read-only
+- **page-architecture**: Page.tsx contract — authentication, data fetching, component delegation
+- **project-structure**: Top-level directory placement — business modules vs core packages
 - **react-components**: React component patterns — containers, presentational components, hooks
+- **server-actions**: Server action patterns — thin adapters, module barrel imports, use case delegation
+- **server-first-react**: Server Components by default — minimum client surface principle, decomposition test
 
 ### Active Hooks
 
@@ -59,10 +65,13 @@ The following validation hooks run automatically:
 
 - **architecture-guard**: Validates DDD architecture compliance on code changes
 - **build-check**: Runs TypeScript compilation check before commits
+- **frankie-scope-guard**: Validates that Frankie agent operates only in frontend-appropriate locations
+- **nucleus-guard**: Prevents modification of nucleus-installed package files in consuming repos
 
 ### Available Skills
 
 - **ddd-patterns**: DDD code patterns and examples for domain, application, and infrastructure layers
+- **frontend-guideline**: React component architecture protocols — server-first, state separation, design system
 
 ### Installed Packages
 

@@ -30,6 +30,10 @@
 #   8. Domain Layer Purity:     domain/ files cannot import infrastructure/ or application/
 #   9. Cross-Module Import Guard: @core modules are blind to each other (Axiom of Isolation)
 #  10. Zombie Shield:           repository read queries must include soft-delete filter (WARN)
+#  11. Page Component Boundary: page.tsx = server component, single child component, no raw JSX
+#  12. 'use client' Containment: 'use client' only in _containers/ or error.tsx
+#  13. Server-First Fetching:  useEffect(…,[]) in containers is forbidden — fetch on server
+#  14. Client Container Purity: _containers/ with 'use client' = slim state proxy, no raw JSX
 # =============================================================================
 
 set -euo pipefail
@@ -41,6 +45,14 @@ TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
 if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
+
+# Skip non-source files — architecture rules apply to code, not documentation or config.
+# Markdown, YAML, JSON, plain text, and shell scripts are exempt.
+case "$FILE_PATH" in
+  *.md|*.mdx|*.yml|*.yaml|*.json|*.txt|*.sh|*.env|*.env.*|*.lock|*.toml|*.ini|*.cfg|*.conf)
+    exit 0
+    ;;
+esac
 
 # Extract content being written/edited
 if [ "$TOOL_NAME" = "Write" ]; then
@@ -129,6 +141,9 @@ IS_USECASE=false
 IS_REPOSITORY=false
 IS_FRONTEND=false
 IS_DOMAIN=false
+IS_PAGE=false
+
+IS_ERROR_BOUNDARY=false
 
 if [[ "$FILE_PATH" == */_components/* ]]; then IS_COMPONENT=true; IS_FRONTEND=true; fi
 if [[ "$FILE_PATH" == */_containers/* ]]; then IS_CONTAINER=true; IS_FRONTEND=true; fi
@@ -136,6 +151,9 @@ if [[ "$FILE_PATH" == */actions.ts ]] || [[ "$FILE_PATH" == */actions.tsx ]]; th
 if [[ "$FILE_PATH" == */application/* ]] || [[ "$FILE_PATH" == *use-case* ]] || [[ "$FILE_PATH" == *UseCase* ]]; then IS_USECASE=true; fi
 if [[ "$FILE_PATH" == */infrastructure/repositories/* ]] || [[ "$FILE_PATH" == */infrastructure/repository/* ]]; then IS_REPOSITORY=true; fi
 if [[ "$FILE_PATH" == */domain/* ]] && [[ "$FILE_PATH" != *Repository* ]]; then IS_DOMAIN=true; fi
+if [[ "$FILE_PATH" == */page.tsx ]]; then IS_PAGE=true; fi
+if [[ "$FILE_PATH" == */error.tsx ]]; then IS_ERROR_BOUNDARY=true; fi
+
 
 # =============================================================================
 # RULE 1: Component Purity
@@ -184,19 +202,64 @@ if [ "$IS_REPOSITORY" = false ]; then
 fi
 
 # =============================================================================
-# RULE 3: Server Actions → UseCases ONLY
-# actions.ts can ONLY import and call UseCases from the application layer.
-# No direct repository access. No direct prisma. No direct fetch/HTTP.
+# RULE 3: Server Actions → Module Barrel ONLY
+# actions.ts files (and any file in app/) can ONLY import from module barrels
+# (e.g., @/modules/nucleus). They must NEVER import from:
+#   - Module internals (infrastructure/, domain/, application/)
+#   - Core packages (@core/identity, @core/auth, @core/iam)
+#   - Repositories, composition roots, or any infrastructure detail
+#
+# This is the most commonly violated rule. The composition root is an
+# implementation detail of the module — server actions must not know it exists.
 # =============================================================================
 
-if [ "$IS_ACTION" = true ]; then
+IS_APP_FILE=false
+if [[ "$FILE_PATH" == */app/* ]] || [[ "$FILE_PATH" == app/* ]]; then IS_APP_FILE=true; fi
+
+if [ "$IS_ACTION" = true ] || [ "$IS_APP_FILE" = true ]; then
+  # No infrastructure imports (composition root, session internals, repositories)
+  if content_has "from.*infrastructure/|from.*infrastructure'|from.*infrastructure\""; then
+    FOUND=$(content_matches "from.*infrastructure")
+    deny \
+      "MODULE BOUNDARY — NO INFRASTRUCTURE IMPORTS" \
+      "Files in app/ must NOT import from infrastructure/ directly.\n${FOUND}" \
+      "Import from the module barrel only (e.g., import { myUseCase } from '@/modules/mymodule'). The composition root, repositories, and session utilities are internal to the module."
+  fi
+
+  # No domain layer imports
+  if content_has "from.*modules/.*/domain/"; then
+    FOUND=$(content_matches "from.*modules/.*/domain/")
+    deny \
+      "MODULE BOUNDARY — NO DOMAIN IMPORTS" \
+      "Files in app/ must NOT import from a module's domain/ layer directly.\n${FOUND}" \
+      "Import types from the module barrel (e.g., import { type ActionResult } from '@/modules/mymodule'). The module barrel re-exports all public types."
+  fi
+
+  # No application layer imports (use cases should come via barrel, not directly)
+  if content_has "from.*modules/.*/application/"; then
+    FOUND=$(content_matches "from.*modules/.*/application/")
+    deny \
+      "MODULE BOUNDARY — NO APPLICATION IMPORTS" \
+      "Files in app/ must NOT import from a module's application/ layer directly.\n${FOUND}" \
+      "Import pre-wired use cases from the module barrel (e.g., import { register } from '@/modules/mymodule'). The barrel wires use case factories to the composition root internally."
+  fi
+
+  # No core package imports
+  if content_has "from.*packages/@core/|from.*@core/"; then
+    FOUND=$(content_matches "from.*packages/@core/|from.*@core/")
+    deny \
+      "MODULE BOUNDARY — NO CORE PACKAGE IMPORTS" \
+      "Files in app/ must NOT import from core packages directly.\n${FOUND}" \
+      "Import from the module barrel only. The module barrel re-exports any core types that consumers need (e.g., type Principal, type Policy)."
+  fi
+
   # No repository imports
   if content_has "import.*[Rr]epository|from.*infrastructure/repositories|from.*infrastructure/repository"; then
     FOUND=$(content_matches "[Rr]epository|infrastructure/repositor")
     deny \
       "ACTION LAYER BOUNDARY" \
       "Server Actions must NOT import Repositories directly.\n${FOUND}" \
-      "Actions can ONLY call UseCases. Import from modules/<module>/application/ and call a UseCase. The UseCase will access the repository."
+      "Actions can ONLY call UseCases via the module barrel."
   fi
 
   # No direct HTTP/fetch/axios calls
@@ -395,6 +458,113 @@ if [ "$IS_REPOSITORY" = true ]; then
         "ZOMBIE SHIELD — SOFT-DELETE FILTER MISSING" \
         "This repository file contains read queries but no soft-delete filter (isNull / deletedAt / deleted_at) was detected.\nRead query lines:\n${FOUND}" \
         "Add a soft-delete guard to all SELECT/find queries. Example (Drizzle): where(and(eq(table.id, id), isNull(table.deletedAt))). This prevents deleted records from appearing in results."
+    fi
+  fi
+fi
+
+# =============================================================================
+# RULE 11: Page Component Boundary
+# Files matching */page.tsx must be Server Components that only orchestrate
+# data and delegate rendering to a single child component. They must NOT:
+#   a) carry a 'use client' directive (pages are always server components)
+#   b) call any React hook (hooks belong in _containers/)
+#   c) contain raw HTML JSX tags (markup belongs in _components/ or _containers/)
+# =============================================================================
+
+if [ "$IS_PAGE" = true ]; then
+
+  # 11a: No 'use client' directive in pages
+  if content_has "^['\"]use client['\"]"; then
+    FOUND=$(content_matches "^['\"]use client['\"]")
+    deny \
+      "PAGE COMPONENT BOUNDARY — NO USE CLIENT" \
+      "Page files must be Server Components. The 'use client' directive is forbidden in page.tsx.\n${FOUND}" \
+      "Move all client-side logic (state, hooks, event handlers) to a Container in _containers/. The page fetches data server-side and passes it as props to the Container or Component."
+  fi
+
+  # 11b: No React hooks in pages
+  PAGE_HOOK_PATTERN="(useState|useEffect|useReducer|useMemo|useCallback|useRef|useContext|useQuery|useMutation|useTransition|useOptimistic|useRouter|usePathname|useSearchParams|useLayoutEffect|useFormStatus)"
+
+  if content_has "$PAGE_HOOK_PATTERN"; then
+    FOUND=$(content_matches "$PAGE_HOOK_PATTERN")
+    deny \
+      "PAGE COMPONENT BOUNDARY — NO HOOKS IN PAGES" \
+      "Page files must not use React hooks. Found hooks in page.tsx.\n${FOUND}" \
+      "Move all hooks and state management to a Container in _containers/. The page.tsx is a Server Component — it fetches data and delegates rendering."
+  fi
+
+  # 11c: No raw HTML JSX tags in pages
+  RAW_HTML_PATTERN="<(div|form|input|button|section|ul|ol|li|span|p|h[1-6]|table|thead|tbody|tr|td|th|label|select|option|textarea|dl|dt|dd|nav|header|footer|main|article|aside)[[:space:]>/]"
+
+  if content_has "$RAW_HTML_PATTERN"; then
+    FOUND=$(content_matches "$RAW_HTML_PATTERN")
+    deny \
+      "PAGE COMPONENT BOUNDARY — NO RAW HTML JSX IN PAGES" \
+      "Page files must not contain raw HTML JSX. Found HTML elements directly in page.tsx.\n${FOUND}" \
+      "Extract all JSX into a Component in _components/ or a Container in _containers/. The page should return a single component: return <MyPageView data={data} />;"
+  fi
+
+fi
+
+# =============================================================================
+# RULE 12: 'use client' Containment
+# The 'use client' directive is ONLY allowed in:
+#   - Files inside _containers/ directories
+#   - error.tsx files (Next.js requires error boundaries to be client components)
+# Everywhere else, server components are the default.
+# =============================================================================
+
+if [ "$IS_CONTAINER" = false ] && [ "$IS_ERROR_BOUNDARY" = false ]; then
+  if content_has "^['\"]use client['\"]"; then
+    FOUND=$(content_matches "^['\"]use client['\"]")
+    deny \
+      "USE CLIENT CONTAINMENT" \
+      "The 'use client' directive is only allowed in _containers/ files (and error.tsx boundaries). Found 'use client' outside an allowed location.\n${FOUND}" \
+      "Move all client-side logic (state, hooks, event handlers, browser APIs) into a Container file inside _containers/. Server Components are the default — only opt into client when you genuinely need interactivity."
+  fi
+fi
+
+# =============================================================================
+# RULE 13: Server-First Data Fetching (DENY)
+# Containers that use useEffect with an empty dependency array are doing
+# mount-only data fetching. In the App Router, data fetching belongs
+# in Server Components — never in client-side effects. There is no valid
+# reason to fetch data via useEffect or the use() hook.
+# =============================================================================
+
+if [ "$IS_CONTAINER" = true ]; then
+  MOUNT_EFFECT_PATTERN="useEffect\([^)]*,[[:space:]]*\[\]"
+
+  if content_has "$MOUNT_EFFECT_PATTERN"; then
+    FOUND=$(content_matches "$MOUNT_EFFECT_PATTERN")
+    deny \
+      "SERVER-FIRST DATA FETCHING" \
+      "Found useEffect with empty dependency array — this is mount-only data fetching that MUST happen on the server.\n${FOUND}" \
+      "Move data fetching to the Server Component (page.tsx or a server container) and pass the data as props. There is no valid reason to fetch data via useEffect in this project."
+  fi
+fi
+
+# =============================================================================
+# RULE 14: Client Container Purity
+# CLIENT containers (_containers/ files with 'use client') are slim state
+# proxies. They manage client state, hooks, and event handlers, then delegate
+# ALL rendering to components in _components/. Client containers must NOT
+# contain raw HTML JSX tags — markup belongs in _components/.
+#
+# Server containers (no 'use client') MAY contain light composition markup.
+# =============================================================================
+
+if [ "$IS_CONTAINER" = true ]; then
+  # Only enforce for client containers — check if content has 'use client'
+  if content_has "^['\"]use client['\"]"; then
+    CONTAINER_HTML_PATTERN="<(div|form|input|button|section|ul|ol|li|span|p|h[1-6]|table|thead|tbody|tr|td|th|label|select|option|textarea|dl|dt|dd|nav|header|footer|main|article|aside)[[:space:]>/]"
+
+    if content_has "$CONTAINER_HTML_PATTERN"; then
+      FOUND=$(content_matches "$CONTAINER_HTML_PATTERN")
+      deny \
+        "CLIENT CONTAINER PURITY — NO RAW HTML JSX" \
+        "Client containers must be slim state proxies that delegate rendering to components. Found raw HTML JSX directly in a client container file.\n${FOUND}" \
+        "Extract all JSX markup into a presentational Component in _components/. The client container manages state and event handlers, then passes data as props to the component. A client container's return should be a single component call: return <MyView data={data} onSubmit={handleSubmit} />;"
     fi
   fi
 fi
