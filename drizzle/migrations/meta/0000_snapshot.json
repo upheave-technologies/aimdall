@@ -1,0 +1,2665 @@
+{
+  "id": "0792b1ec-4bb7-44d1-b5ef-d69d148899bd",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.cost_tracking_attribution_groups": {
+      "name": "cost_tracking_attribution_groups",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "group_type": {
+          "name": "group_type",
+          "type": "cost_tracking_group_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_attribution_groups_slug_unique_active": {
+          "name": "cost_tracking_attribution_groups_slug_unique_active",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_attribution_groups\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_groups_group_type_idx": {
+          "name": "cost_tracking_attribution_groups_group_type_idx",
+          "columns": [
+            {
+              "expression": "group_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_groups_parent_id_idx": {
+          "name": "cost_tracking_attribution_groups_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_groups_deleted_at_idx": {
+          "name": "cost_tracking_attribution_groups_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_attribution_rules": {
+      "name": "cost_tracking_attribution_rules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "cost_tracking_attribution_dimension",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_type": {
+          "name": "match_type",
+          "type": "cost_tracking_attribution_match_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_value": {
+          "name": "match_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_attribution_rules_combo_unique_active": {
+          "name": "cost_tracking_attribution_rules_combo_unique_active",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dimension",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "match_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "match_value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_attribution_rules\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_rules_group_id_idx": {
+          "name": "cost_tracking_attribution_rules_group_id_idx",
+          "columns": [
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_rules_dimension_idx": {
+          "name": "cost_tracking_attribution_rules_dimension_idx",
+          "columns": [
+            {
+              "expression": "dimension",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_attribution_rules_deleted_at_idx": {
+          "name": "cost_tracking_attribution_rules_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_attribution_rules_group_id_cost_tracking_attribution_groups_id_fk": {
+          "name": "cost_tracking_attribution_rules_group_id_cost_tracking_attribution_groups_id_fk",
+          "tableFrom": "cost_tracking_attribution_rules",
+          "tableTo": "cost_tracking_attribution_groups",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_budgets": {
+      "name": "cost_tracking_budgets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_type": {
+          "name": "budget_type",
+          "type": "cost_tracking_budget_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_type": {
+          "name": "period_type",
+          "type": "cost_tracking_budget_period_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(16, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "alert_thresholds": {
+          "name": "alert_thresholds",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_spend": {
+          "name": "current_spend",
+          "type": "numeric(16, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "current_period_start": {
+          "name": "current_period_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_period_end": {
+          "name": "current_period_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "cost_tracking_budget_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "last_evaluated_at": {
+          "name": "last_evaluated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_budgets_status_idx": {
+          "name": "cost_tracking_budgets_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_budgets_budget_type_idx": {
+          "name": "cost_tracking_budgets_budget_type_idx",
+          "columns": [
+            {
+              "expression": "budget_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_budgets_deleted_at_idx": {
+          "name": "cost_tracking_budgets_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_model_pricing": {
+      "name": "cost_tracking_model_pricing",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_from": {
+          "name": "effective_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_to": {
+          "name": "effective_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "service_tier": {
+          "name": "service_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'on_demand'"
+        },
+        "context_tier": {
+          "name": "context_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rates": {
+          "name": "rates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cost_tracking_model_pricing_combo_unique": {
+          "name": "cost_tracking_model_pricing_combo_unique",
+          "columns": [
+            {
+              "expression": "model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "effective_from",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "service_tier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "context_tier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "region",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_model_pricing_model_id_idx": {
+          "name": "cost_tracking_model_pricing_model_id_idx",
+          "columns": [
+            {
+              "expression": "model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_model_pricing_effective_range_idx": {
+          "name": "cost_tracking_model_pricing_effective_range_idx",
+          "columns": [
+            {
+              "expression": "effective_from",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "effective_to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_model_pricing_model_id_cost_tracking_models_id_fk": {
+          "name": "cost_tracking_model_pricing_model_id_cost_tracking_models_id_fk",
+          "tableFrom": "cost_tracking_model_pricing",
+          "tableTo": "cost_tracking_models",
+          "columnsFrom": [
+            "model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_models": {
+      "name": "cost_tracking_models",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_category": {
+          "name": "service_category",
+          "type": "cost_tracking_service_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "cost_tracking_model_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'available'"
+        },
+        "capabilities": {
+          "name": "capabilities",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cost_tracking_models_provider_slug_unique": {
+          "name": "cost_tracking_models_provider_slug_unique",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_models_provider_id_idx": {
+          "name": "cost_tracking_models_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_models_service_category_idx": {
+          "name": "cost_tracking_models_service_category_idx",
+          "columns": [
+            {
+              "expression": "service_category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_models_status_idx": {
+          "name": "cost_tracking_models_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_models_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_models_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_models",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_provider_costs": {
+      "name": "cost_tracking_provider_costs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_id": {
+          "name": "segment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_slug": {
+          "name": "model_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cost_type": {
+          "name": "cost_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "service_tier": {
+          "name": "service_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context_tier": {
+          "name": "context_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_end": {
+          "name": "bucket_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(16, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dedup_key": {
+          "name": "dedup_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sync_id": {
+          "name": "sync_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_metadata": {
+          "name": "provider_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_provider_costs_dedup_key_unique_active": {
+          "name": "cost_tracking_provider_costs_dedup_key_unique_active",
+          "columns": [
+            {
+              "expression": "dedup_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_provider_costs\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_costs_provider_id_idx": {
+          "name": "cost_tracking_provider_costs_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_costs_segment_id_idx": {
+          "name": "cost_tracking_provider_costs_segment_id_idx",
+          "columns": [
+            {
+              "expression": "segment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_costs_bucket_start_idx": {
+          "name": "cost_tracking_provider_costs_bucket_start_idx",
+          "columns": [
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_costs_cost_type_idx": {
+          "name": "cost_tracking_provider_costs_cost_type_idx",
+          "columns": [
+            {
+              "expression": "cost_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_costs_deleted_at_idx": {
+          "name": "cost_tracking_provider_costs_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_provider_costs_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_provider_costs_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_provider_costs",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_provider_costs_segment_id_cost_tracking_provider_segments_id_fk": {
+          "name": "cost_tracking_provider_costs_segment_id_cost_tracking_provider_segments_id_fk",
+          "tableFrom": "cost_tracking_provider_costs",
+          "tableTo": "cost_tracking_provider_segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_provider_costs_sync_id_cost_tracking_sync_logs_id_fk": {
+          "name": "cost_tracking_provider_costs_sync_id_cost_tracking_sync_logs_id_fk",
+          "tableFrom": "cost_tracking_provider_costs",
+          "tableTo": "cost_tracking_sync_logs",
+          "columnsFrom": [
+            "sync_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_provider_credentials": {
+      "name": "cost_tracking_provider_credentials",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_id": {
+          "name": "segment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key_hint": {
+          "name": "key_hint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credential_type": {
+          "name": "credential_type",
+          "type": "cost_tracking_credential_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "cost_tracking_credential_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "is_sync_credential": {
+          "name": "is_sync_credential",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "scopes": {
+          "name": "scopes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_at": {
+          "name": "last_sync_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_provider_credentials_provider_external_unique_active": {
+          "name": "cost_tracking_provider_credentials_provider_external_unique_active",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_provider_credentials\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_credentials_provider_id_idx": {
+          "name": "cost_tracking_provider_credentials_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_credentials_segment_id_idx": {
+          "name": "cost_tracking_provider_credentials_segment_id_idx",
+          "columns": [
+            {
+              "expression": "segment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_credentials_status_idx": {
+          "name": "cost_tracking_provider_credentials_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_credentials_credential_type_idx": {
+          "name": "cost_tracking_provider_credentials_credential_type_idx",
+          "columns": [
+            {
+              "expression": "credential_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_credentials_deleted_at_idx": {
+          "name": "cost_tracking_provider_credentials_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_provider_credentials_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_provider_credentials_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_provider_credentials",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_provider_credentials_segment_id_cost_tracking_provider_segments_id_fk": {
+          "name": "cost_tracking_provider_credentials_segment_id_cost_tracking_provider_segments_id_fk",
+          "tableFrom": "cost_tracking_provider_credentials",
+          "tableTo": "cost_tracking_provider_segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_provider_segments": {
+      "name": "cost_tracking_provider_segments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segment_type": {
+          "name": "segment_type",
+          "type": "cost_tracking_segment_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_provider_segments_provider_external_unique_active": {
+          "name": "cost_tracking_provider_segments_provider_external_unique_active",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_provider_segments\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_segments_provider_id_idx": {
+          "name": "cost_tracking_provider_segments_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_segments_parent_id_idx": {
+          "name": "cost_tracking_provider_segments_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_segments_segment_type_idx": {
+          "name": "cost_tracking_provider_segments_segment_type_idx",
+          "columns": [
+            {
+              "expression": "segment_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_provider_segments_deleted_at_idx": {
+          "name": "cost_tracking_provider_segments_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_provider_segments_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_provider_segments_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_provider_segments",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_providers": {
+      "name": "cost_tracking_providers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_base_url": {
+          "name": "api_base_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "cost_tracking_provider_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "configuration": {
+          "name": "configuration",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_at": {
+          "name": "last_sync_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_providers_slug_unique_active": {
+          "name": "cost_tracking_providers_slug_unique_active",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_providers\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_providers_status_idx": {
+          "name": "cost_tracking_providers_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_providers_deleted_at_idx": {
+          "name": "cost_tracking_providers_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_sync_cursors": {
+      "name": "cost_tracking_sync_cursors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "service_category": {
+          "name": "service_category",
+          "type": "cost_tracking_service_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_synced_bucket": {
+          "name": "last_synced_bucket",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_page_token": {
+          "name": "last_page_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cost_tracking_sync_cursors_combo_unique": {
+          "name": "cost_tracking_sync_cursors_combo_unique",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "credential_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "service_category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_sync_cursors_provider_id_idx": {
+          "name": "cost_tracking_sync_cursors_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_sync_cursors_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_sync_cursors_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_sync_cursors",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_sync_cursors_credential_id_cost_tracking_provider_credentials_id_fk": {
+          "name": "cost_tracking_sync_cursors_credential_id_cost_tracking_provider_credentials_id_fk",
+          "tableFrom": "cost_tracking_sync_cursors",
+          "tableTo": "cost_tracking_provider_credentials",
+          "columnsFrom": [
+            "credential_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_sync_logs": {
+      "name": "cost_tracking_sync_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_type": {
+          "name": "sync_type",
+          "type": "cost_tracking_sync_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "cost_tracking_sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "period_start": {
+          "name": "period_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_end": {
+          "name": "period_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "records_fetched": {
+          "name": "records_fetched",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "records_created": {
+          "name": "records_created",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "records_updated": {
+          "name": "records_updated",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "records_skipped": {
+          "name": "records_skipped",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_details": {
+          "name": "error_details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cost_tracking_sync_logs_provider_id_idx": {
+          "name": "cost_tracking_sync_logs_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_sync_logs_credential_id_idx": {
+          "name": "cost_tracking_sync_logs_credential_id_idx",
+          "columns": [
+            {
+              "expression": "credential_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_sync_logs_status_idx": {
+          "name": "cost_tracking_sync_logs_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_sync_logs_started_at_idx": {
+          "name": "cost_tracking_sync_logs_started_at_idx",
+          "columns": [
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_sync_logs_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_sync_logs_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_sync_logs",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_sync_logs_credential_id_cost_tracking_provider_credentials_id_fk": {
+          "name": "cost_tracking_sync_logs_credential_id_cost_tracking_provider_credentials_id_fk",
+          "tableFrom": "cost_tracking_sync_logs",
+          "tableTo": "cost_tracking_provider_credentials",
+          "columnsFrom": [
+            "credential_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cost_tracking_usage_records": {
+      "name": "cost_tracking_usage_records",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "segment_id": {
+          "name": "segment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_slug": {
+          "name": "model_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_category": {
+          "name": "service_category",
+          "type": "cost_tracking_service_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_tier": {
+          "name": "service_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context_tier": {
+          "name": "context_tier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_end": {
+          "name": "bucket_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_width": {
+          "name": "bucket_width",
+          "type": "cost_tracking_bucket_width",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cached_input_tokens": {
+          "name": "cached_input_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cache_write_tokens": {
+          "name": "cache_write_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thinking_tokens": {
+          "name": "thinking_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "audio_input_tokens": {
+          "name": "audio_input_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "audio_output_tokens": {
+          "name": "audio_output_tokens",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_count": {
+          "name": "image_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "character_count": {
+          "name": "character_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_bytes": {
+          "name": "storage_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_count": {
+          "name": "session_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "search_count": {
+          "name": "search_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_count": {
+          "name": "request_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calculated_cost_amount": {
+          "name": "calculated_cost_amount",
+          "type": "numeric(16, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calculated_cost_currency": {
+          "name": "calculated_cost_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'USD'"
+        },
+        "cost_source": {
+          "name": "cost_source",
+          "type": "cost_tracking_cost_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'calculated'"
+        },
+        "provider_metadata": {
+          "name": "provider_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_id": {
+          "name": "sync_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dedup_key": {
+          "name": "dedup_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "cost_tracking_usage_records_dedup_key_unique_active": {
+          "name": "cost_tracking_usage_records_dedup_key_unique_active",
+          "columns": [
+            {
+              "expression": "dedup_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"cost_tracking_usage_records\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_provider_id_idx": {
+          "name": "cost_tracking_usage_records_provider_id_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_credential_id_idx": {
+          "name": "cost_tracking_usage_records_credential_id_idx",
+          "columns": [
+            {
+              "expression": "credential_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_segment_id_idx": {
+          "name": "cost_tracking_usage_records_segment_id_idx",
+          "columns": [
+            {
+              "expression": "segment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_model_id_idx": {
+          "name": "cost_tracking_usage_records_model_id_idx",
+          "columns": [
+            {
+              "expression": "model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_model_slug_idx": {
+          "name": "cost_tracking_usage_records_model_slug_idx",
+          "columns": [
+            {
+              "expression": "model_slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_service_category_idx": {
+          "name": "cost_tracking_usage_records_service_category_idx",
+          "columns": [
+            {
+              "expression": "service_category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_bucket_start_idx": {
+          "name": "cost_tracking_usage_records_bucket_start_idx",
+          "columns": [
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_bucket_range_idx": {
+          "name": "cost_tracking_usage_records_bucket_range_idx",
+          "columns": [
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_end",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_sync_id_idx": {
+          "name": "cost_tracking_usage_records_sync_id_idx",
+          "columns": [
+            {
+              "expression": "sync_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cost_tracking_usage_records_deleted_at_idx": {
+          "name": "cost_tracking_usage_records_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cost_tracking_usage_records_provider_id_cost_tracking_providers_id_fk": {
+          "name": "cost_tracking_usage_records_provider_id_cost_tracking_providers_id_fk",
+          "tableFrom": "cost_tracking_usage_records",
+          "tableTo": "cost_tracking_providers",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_usage_records_credential_id_cost_tracking_provider_credentials_id_fk": {
+          "name": "cost_tracking_usage_records_credential_id_cost_tracking_provider_credentials_id_fk",
+          "tableFrom": "cost_tracking_usage_records",
+          "tableTo": "cost_tracking_provider_credentials",
+          "columnsFrom": [
+            "credential_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_usage_records_segment_id_cost_tracking_provider_segments_id_fk": {
+          "name": "cost_tracking_usage_records_segment_id_cost_tracking_provider_segments_id_fk",
+          "tableFrom": "cost_tracking_usage_records",
+          "tableTo": "cost_tracking_provider_segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_usage_records_model_id_cost_tracking_models_id_fk": {
+          "name": "cost_tracking_usage_records_model_id_cost_tracking_models_id_fk",
+          "tableFrom": "cost_tracking_usage_records",
+          "tableTo": "cost_tracking_models",
+          "columnsFrom": [
+            "model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cost_tracking_usage_records_sync_id_cost_tracking_sync_logs_id_fk": {
+          "name": "cost_tracking_usage_records_sync_id_cost_tracking_sync_logs_id_fk",
+          "tableFrom": "cost_tracking_usage_records",
+          "tableTo": "cost_tracking_sync_logs",
+          "columnsFrom": [
+            "sync_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.cost_tracking_attribution_dimension": {
+      "name": "cost_tracking_attribution_dimension",
+      "schema": "public",
+      "values": [
+        "credential",
+        "segment",
+        "provider",
+        "model",
+        "model_slug",
+        "service_category",
+        "service_tier",
+        "region",
+        "metadata_key"
+      ]
+    },
+    "public.cost_tracking_attribution_match_type": {
+      "name": "cost_tracking_attribution_match_type",
+      "schema": "public",
+      "values": [
+        "exact",
+        "prefix",
+        "regex",
+        "in_list"
+      ]
+    },
+    "public.cost_tracking_bucket_width": {
+      "name": "cost_tracking_bucket_width",
+      "schema": "public",
+      "values": [
+        "1m",
+        "1h",
+        "1d"
+      ]
+    },
+    "public.cost_tracking_budget_period_type": {
+      "name": "cost_tracking_budget_period_type",
+      "schema": "public",
+      "values": [
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "annual",
+        "custom"
+      ]
+    },
+    "public.cost_tracking_budget_status": {
+      "name": "cost_tracking_budget_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "paused",
+        "exceeded",
+        "archived"
+      ]
+    },
+    "public.cost_tracking_budget_type": {
+      "name": "cost_tracking_budget_type",
+      "schema": "public",
+      "values": [
+        "hard_limit",
+        "soft_alert",
+        "tracking_only"
+      ]
+    },
+    "public.cost_tracking_cost_source": {
+      "name": "cost_tracking_cost_source",
+      "schema": "public",
+      "values": [
+        "provider_reported",
+        "calculated",
+        "estimated",
+        "none"
+      ]
+    },
+    "public.cost_tracking_credential_status": {
+      "name": "cost_tracking_credential_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "revoked",
+        "expired",
+        "suspended"
+      ]
+    },
+    "public.cost_tracking_credential_type": {
+      "name": "cost_tracking_credential_type",
+      "schema": "public",
+      "values": [
+        "admin_api_key",
+        "api_key",
+        "service_account",
+        "iam_role",
+        "oauth_token",
+        "other"
+      ]
+    },
+    "public.cost_tracking_group_type": {
+      "name": "cost_tracking_group_type",
+      "schema": "public",
+      "values": [
+        "team",
+        "department",
+        "project",
+        "environment",
+        "cost_center",
+        "business_unit",
+        "custom"
+      ]
+    },
+    "public.cost_tracking_model_status": {
+      "name": "cost_tracking_model_status",
+      "schema": "public",
+      "values": [
+        "available",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "public.cost_tracking_provider_status": {
+      "name": "cost_tracking_provider_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "paused",
+        "error"
+      ]
+    },
+    "public.cost_tracking_segment_type": {
+      "name": "cost_tracking_segment_type",
+      "schema": "public",
+      "values": [
+        "organization",
+        "workspace",
+        "project",
+        "folder",
+        "account",
+        "organizational_unit",
+        "other"
+      ]
+    },
+    "public.cost_tracking_service_category": {
+      "name": "cost_tracking_service_category",
+      "schema": "public",
+      "values": [
+        "text_generation",
+        "embedding",
+        "image_generation",
+        "audio_speech",
+        "audio_transcription",
+        "moderation",
+        "video_generation",
+        "code_execution",
+        "vector_storage",
+        "web_search",
+        "reranking",
+        "other"
+      ]
+    },
+    "public.cost_tracking_sync_status": {
+      "name": "cost_tracking_sync_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "partial"
+      ]
+    },
+    "public.cost_tracking_sync_type": {
+      "name": "cost_tracking_sync_type",
+      "schema": "public",
+      "values": [
+        "full",
+        "incremental",
+        "backfill"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

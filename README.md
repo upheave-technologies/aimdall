@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aimdall
 
-## Getting Started
+LLM cost tracking dashboard. Polls usage data from OpenAI, Anthropic, and Google Vertex AI, normalizes it into Postgres, and displays cost breakdowns by provider, model, credential, and day.
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env  # fill in your values
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm db:generate   # generate migration from schema
+pnpm db:migrate    # apply migrations
+pnpm db:reset      # drop everything, regenerate, and re-apply
+pnpm db:studio     # open Drizzle Studio GUI
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Development
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Dashboard at [http://localhost:3000/cost-tracking](http://localhost:3000/cost-tracking).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Syncing Usage Data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Trigger a sync via the API endpoint. The default window is the last 2 hours.
 
-## Deploy on Vercel
+```bash
+# Default sync (last 2 hours):
+curl -X POST http://localhost:3000/api/cost-tracking/sync
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Backfill from a specific date:
+curl -X POST http://localhost:3000/api/cost-tracking/sync \
+  -H "Content-Type: application/json" \
+  -d '{"startTime": "2026-03-01T00:00:00Z"}'
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# With custom date range:
+curl -X POST http://localhost:3000/api/cost-tracking/sync \
+  -H "Content-Type: application/json" \
+  -d '{"startTime": "2026-03-01T00:00:00Z", "endTime": "2026-03-15T00:00:00Z"}'
+
+# With auth secret (if COST_TRACKING_SYNC_SECRET is set):
+curl -X POST http://localhost:3000/api/cost-tracking/sync \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SYNC_SECRET" \
+  -d '{"startTime": "2026-03-01T00:00:00Z"}'
+```
+
+Re-running the same time range is safe -- records are upserted, not duplicated.
+
+## Environment Variables
+
+See `.env.example` for all available variables. Only `DATABASE_URL` and at least one provider key are required. Unconfigured providers are silently skipped.
