@@ -13,13 +13,14 @@ Every `page.tsx` file in `app/` is a **Server Component**. No exceptions.
 A page file does exactly three things:
 
 1. **Authenticate** — check session, redirect if unauthorized
-2. **Fetch data** — call use cases via the module barrel
+2. **Fetch data** — call use cases via direct imports from each use case file
 3. **Delegate rendering** — return a single component with data as props
 
 ```tsx
 // ✅ CORRECT — page.tsx
 import { redirect } from 'next/navigation';
-import { getSessionPrincipalId, getProfile } from '@/modules/nucleus';
+import { getSessionPrincipalId } from '@/modules/nucleus/infrastructure/session';
+import { getProfile } from '@/modules/nucleus/application/getProfileUseCase';
 import { DashboardView } from './_components/dashboard-view';
 
 export default async function DashboardPage() {

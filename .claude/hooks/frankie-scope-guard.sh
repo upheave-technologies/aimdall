@@ -33,6 +33,12 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
+# Agent-type gating: only enforce for frankie
+AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty')
+if [ "$AGENT_TYPE" != "frankie" ]; then
+  exit 0
+fi
+
 # Extract the file path from tool_input
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 

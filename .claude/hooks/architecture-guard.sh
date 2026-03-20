@@ -39,6 +39,14 @@
 set -euo pipefail
 
 INPUT=$(cat)
+
+# Agent-type gating: only enforce for donnie, nexus, frankie
+AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty')
+case "$AGENT_TYPE" in
+  donnie|nexus|frankie) ;;
+  *) exit 0 ;;
+esac
+
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
 
@@ -202,55 +210,45 @@ if [ "$IS_REPOSITORY" = false ]; then
 fi
 
 # =============================================================================
-# RULE 3: Server Actions → Module Barrel ONLY
-# actions.ts files (and any file in app/) can ONLY import from module barrels
-# (e.g., @/modules/nucleus). They must NEVER import from:
-#   - Module internals (infrastructure/, domain/, application/)
-#   - Core packages (@core/identity, @core/auth, @core/iam)
-#   - Repositories, composition roots, or any infrastructure detail
+# RULE 3: Server Actions → Direct Imports from Allowed Paths
+# actions.ts files (and any file in app/) import directly:
+#   - Use cases from @/modules/{module}/application/{useCase}
+#   - Types from @/modules/{module}/domain/types
+#   - Session utilities from @/modules/{module}/infrastructure/session
+#   - Core types from @/packages/@core/*
+# They must NEVER import from:
+#   - Composition roots (infrastructure/nucleus)
+#   - Repositories (infrastructure/repositories/*)
+#   - Other internal infrastructure files
 #
-# This is the most commonly violated rule. The composition root is an
-# implementation detail of the module — server actions must not know it exists.
+# Application layer imports ARE allowed — app/ files can import pre-wired
+# use cases directly from application/ use case files.
 # =============================================================================
 
 IS_APP_FILE=false
 if [[ "$FILE_PATH" == */app/* ]] || [[ "$FILE_PATH" == app/* ]]; then IS_APP_FILE=true; fi
 
 if [ "$IS_ACTION" = true ] || [ "$IS_APP_FILE" = true ]; then
-  # No infrastructure imports (composition root, session internals, repositories)
-  if content_has "from.*infrastructure/|from.*infrastructure'|from.*infrastructure\""; then
-    FOUND=$(content_matches "from.*infrastructure")
-    deny \
-      "MODULE BOUNDARY — NO INFRASTRUCTURE IMPORTS" \
-      "Files in app/ must NOT import from infrastructure/ directly.\n${FOUND}" \
-      "Import from the module barrel only (e.g., import { myUseCase } from '@/modules/mymodule'). The composition root, repositories, and session utilities are internal to the module."
+  # No infrastructure imports EXCEPT infrastructure/session (which is a public API surface)
+  if content_has "from.*infrastructure"; then
+    INFRA_FOUND=$(printf '%s' "$CONTENT" | grep -nE "from.*infrastructure" 2>/dev/null | grep -vE "infrastructure/session" | head -5 || true)
+    if [ -n "$INFRA_FOUND" ]; then
+      deny \
+        "MODULE BOUNDARY — NO INFRASTRUCTURE IMPORTS" \
+        "Files in app/ must NOT import from infrastructure/ directly (except infrastructure/session).\n${INFRA_FOUND}" \
+        "Use cases: import from '@/modules/mymodule/use-cases'. Session: import from '@/modules/mymodule/infrastructure/session'. Everything else in infrastructure/ is private."
+    fi
   fi
 
-  # No domain layer imports
+  # No domain layer imports EXCEPT domain/types (which is the public type surface)
   if content_has "from.*modules/.*/domain/"; then
-    FOUND=$(content_matches "from.*modules/.*/domain/")
-    deny \
-      "MODULE BOUNDARY — NO DOMAIN IMPORTS" \
-      "Files in app/ must NOT import from a module's domain/ layer directly.\n${FOUND}" \
-      "Import types from the module barrel (e.g., import { type ActionResult } from '@/modules/mymodule'). The module barrel re-exports all public types."
-  fi
-
-  # No application layer imports (use cases should come via barrel, not directly)
-  if content_has "from.*modules/.*/application/"; then
-    FOUND=$(content_matches "from.*modules/.*/application/")
-    deny \
-      "MODULE BOUNDARY — NO APPLICATION IMPORTS" \
-      "Files in app/ must NOT import from a module's application/ layer directly.\n${FOUND}" \
-      "Import pre-wired use cases from the module barrel (e.g., import { register } from '@/modules/mymodule'). The barrel wires use case factories to the composition root internally."
-  fi
-
-  # No core package imports
-  if content_has "from.*packages/@core/|from.*@core/"; then
-    FOUND=$(content_matches "from.*packages/@core/|from.*@core/")
-    deny \
-      "MODULE BOUNDARY — NO CORE PACKAGE IMPORTS" \
-      "Files in app/ must NOT import from core packages directly.\n${FOUND}" \
-      "Import from the module barrel only. The module barrel re-exports any core types that consumers need (e.g., type Principal, type Policy)."
+    DOMAIN_FOUND=$(printf '%s' "$CONTENT" | grep -nE "from.*modules/.*/domain/" 2>/dev/null | grep -vE "domain/types" | head -5 || true)
+    if [ -n "$DOMAIN_FOUND" ]; then
+      deny \
+        "MODULE BOUNDARY — NO DOMAIN IMPORTS" \
+        "Files in app/ must NOT import from a module's domain/ layer directly (except domain/types).\n${DOMAIN_FOUND}" \
+        "Types: import from '@/modules/mymodule/domain/types'. Business logic and other domain files are private to the module."
+    fi
   fi
 
   # No repository imports
@@ -259,7 +257,7 @@ if [ "$IS_ACTION" = true ] || [ "$IS_APP_FILE" = true ]; then
     deny \
       "ACTION LAYER BOUNDARY" \
       "Server Actions must NOT import Repositories directly.\n${FOUND}" \
-      "Actions can ONLY call UseCases via the module barrel."
+      "Actions can ONLY call UseCases via '@/modules/mymodule/use-cases'."
   fi
 
   # No direct HTTP/fetch/axios calls

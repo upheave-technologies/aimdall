@@ -67,11 +67,13 @@ The following validation hooks run automatically:
 - **build-check**: Runs TypeScript compilation check before commits
 - **frankie-scope-guard**: Validates that Frankie agent operates only in frontend-appropriate locations
 - **nucleus-guard**: Prevents modification of nucleus-installed package files in consuming repos
+- **orchestrator-guard**: Prevents the main orchestrator from writing source code — delegates to specialized agents
 
 ### Available Skills
 
 - **ddd-patterns**: DDD code patterns and examples for domain, application, and infrastructure layers
 - **frontend-guideline**: React component architecture protocols — server-first, state separation, design system
+- **prover**: Scenario prover — run capability checks, interpret verdicts, write scenarios, add annotations
 
 ### Installed Packages
 

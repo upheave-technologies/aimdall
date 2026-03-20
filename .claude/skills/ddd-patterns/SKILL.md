@@ -11,21 +11,21 @@ Use these patterns when implementing modules. Adapt naming and import paths to m
 
 ```
 {module}/
-├── index.ts                              # Barrel: public API only
 ├── domain/
+│   ├── types.ts                          # Public API: domain type definitions
 │   ├── {entity}.ts                       # Types + pure validation/business functions
 │   ├── {entity}Repository.ts             # Repository contract (interface only)
 │   └── errors.ts                         # Domain error types (optional)
 ├── application/
 │   ├── {module}Error.ts                  # Module-scoped error class
-│   └── {verb}{Entity}UseCase.ts          # One file per use case
+│   └── {verb}{Entity}UseCase.ts          # Public API: one file per use case, exports pre-wired instance
 ├── infrastructure/
+│   ├── session.ts                        # Public API: session utilities
 │   ├── database.ts                       # Database type definition
 │   ├── {Framework}{Adapter}.ts           # Framework-specific adapters
 │   └── repositories/
 │       └── {ORM}{Entity}Repository.ts    # Implements domain interface
 └── schema/
-    ├── index.ts
     ├── enums.ts
     ├── {table}.ts
     └── relations.ts
@@ -173,16 +173,36 @@ export class CampaignError extends Error {
 }
 ```
 
-## Barrel export
+## Module Public API
 
-Public API only — one export per symbol:
+Each use case file exports its own pre-wired instance. There is NO `index.ts` barrel, NO `use-cases.ts`, and NO re-export files of any kind:
 
 ```typescript
-// index.ts
-export { makeCampaignRepository } from './infrastructure/repositories/...';
-export { makeCreateCampaignUseCase } from './application/createCampaignUseCase';
-export type { Campaign } from './domain/campaign';
-export { CampaignError } from './application/campaignError';
+// application/createCampaignUseCase.ts — exports pre-wired instance
+import { makeCampaignRepository } from '../infrastructure/repositories/...';
+import { db } from '../infrastructure/database';
+
+const campaignRepository = makeCampaignRepository(db);
+
+export const makeCreateCampaignUseCase = (campaignRepository: ICampaignRepository) => {
+  return async (data: { /* ... */ }): Promise<Result<Campaign, Error>> => {
+    // ... use case logic
+  };
+};
+
+export const createCampaign = makeCreateCampaignUseCase(campaignRepository);
+
+// domain/types.ts — public domain type definitions
+export type { Campaign } from './campaign';
+export { CampaignError } from '../application/campaignError';
+```
+
+Consumers import directly from each source file:
+```typescript
+import { createCampaign } from '@/modules/campaigns/application/createCampaignUseCase';
+import type { Campaign } from '@/modules/campaigns/domain/types';
+import { getSession } from '@/modules/campaigns/infrastructure/session';
+import type { Principal } from '@/packages/@core/identity';
 ```
 
 ## API route (thin adapter)

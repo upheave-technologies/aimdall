@@ -10,26 +10,31 @@ You are writing code in the app layer (Next.js routes, server actions, pages, la
 
 ## The Iron Rule
 
-**Files in `app/` import ONLY from module barrels.** A module barrel is the `index.ts` at the module root (e.g., `@/modules/nucleus`).
+**Files in `app/` use fully direct imports from source files.** There is no barrel file, no `use-cases.ts`, and no re-export files — every import goes directly to the source file where the code lives.
 
 ```typescript
-// ✅ CORRECT — import from the module barrel
-import { register, getProfile, type ActionResult } from '@/modules/nucleus';
+// ✅ CORRECT — direct imports from source files
+import { register } from '@/modules/nucleus/application/registerUseCase';
+import { setSession } from '@/modules/nucleus/infrastructure/session';
+import type { ActionResult } from '@/modules/nucleus/domain/types';
 
-// ❌ FORBIDDEN — import from module internals
+// ❌ FORBIDDEN — import from private internals
 import { nucleus } from '@/modules/nucleus/infrastructure/nucleus';
-import { makeRegisterUseCase } from '@/modules/nucleus/application/registerUseCase';
-import { getSessionPrincipalId } from '@/modules/nucleus/infrastructure/session';
-import type { Principal } from '@/packages/@core/identity';
 ```
 
-**NEVER import from:**
-- `modules/*/infrastructure/` — composition root, repositories, session internals are PRIVATE
-- `modules/*/domain/` — types are re-exported through the barrel
-- `modules/*/application/` — use case factories are pre-wired through the barrel
-- `packages/@core/*` — core types are re-exported through the barrel
+**Allowed import paths:**
+- `modules/*/application/{verb}{Entity}UseCase` — pre-wired use case instance (each use case from its own file)
+- `modules/*/domain/types` — public type definitions
+- `modules/*/infrastructure/session` — session utilities
+- `packages/@core/*` — core types (Principal, Policy, etc.)
 
-The architecture-guard hook BLOCKS these imports. Do not attempt to bypass it.
+**Forbidden import paths:**
+- `modules/*/infrastructure/nucleus` — composition root is PRIVATE
+- `modules/*/infrastructure/repositories/*` — repository implementations are PRIVATE
+- `modules/*/infrastructure/*` (other than `infrastructure/session`) — adapters, database files are PRIVATE
+- `modules/*/domain/*` (other than `domain/types`) — business logic functions, repository interfaces are PRIVATE
+
+The architecture-guard hook BLOCKS forbidden imports. Do not attempt to bypass it.
 
 ## Server Actions Are Thin Adapters
 
@@ -37,13 +42,15 @@ A server action does exactly 4 things and NOTHING else:
 
 1. **Extract input** — read FormData fields or function parameters
 2. **Validate presence** — check required fields exist (NOT business validation)
-3. **Call ONE use case** — a single pre-wired function from the module barrel
+3. **Call ONE use case** — a single pre-wired function from its use case file
 4. **Return result** — map the Result to ActionResult for the UI
 
 ```typescript
 'use server';
 
-import { register, setSession, type ActionResult } from '@/modules/nucleus';
+import { register } from '@/modules/nucleus/application/registerUseCase';
+import { setSession } from '@/modules/nucleus/infrastructure/session';
+import type { ActionResult } from '@/modules/nucleus/domain/types';
 
 export async function registerAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   // 1. Extract input
@@ -101,11 +108,13 @@ All of this belongs in a use case, not in a server action.
 
 ## Server Component Pages Follow the Same Rules
 
-Pages and layouts in `app/` follow the same barrel-only import rule:
+Pages and layouts in `app/` follow the same direct-import rules:
 
 ```typescript
 // ✅ CORRECT
-import { getProfile, buildAbility, getSessionPrincipalId } from '@/modules/nucleus';
+import { getProfile } from '@/modules/nucleus/application/getProfileUseCase';
+import { buildAbility } from '@/modules/nucleus/application/buildAbilityUseCase';
+import { getSessionPrincipalId } from '@/modules/nucleus/infrastructure/session';
 
 export default async function DashboardPage() {
   const principalId = await getSessionPrincipalId();

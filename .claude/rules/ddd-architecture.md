@@ -32,17 +32,26 @@ Each layer calls only the layer directly below it. Skipping layers is an archite
 
 6. **YAGNI applies to features, not to architecture.** Build only what the task requires. But always use the layered structure — it is the foundation that makes future change low-cost.
 
-## The Module Barrel Boundary
+## The Module Public API Boundary
 
-Every module exports a barrel (`index.ts`) that is its **only public API**. The barrel exports pre-wired use cases, session utilities, and re-exported types. Everything else — the composition root, repositories, domain internals, use case factories — is private to the module.
+Modules use **fully direct imports** — there is no `index.ts` barrel, no `use-cases.ts` composition file, and no re-export files of any kind. Every import goes to the source file where the code lives. Each use case file exports its own pre-wired instance.
 
-**Files in `app/` (server actions, pages, layouts, routes) MUST import exclusively from module barrels.** They must NEVER import from:
-- `modules/*/infrastructure/` (composition root, repositories, session internals)
-- `modules/*/domain/` (types, validation — re-exported through the barrel)
-- `modules/*/application/` (use case factories — pre-wired through the barrel)
-- `packages/@core/*` (core packages — re-exported through the barrel)
+### Allowed imports from `app/`
 
-This is the most commonly violated rule. If a server action needs a use case, it imports the pre-wired instance from the barrel. If it needs a type, the barrel re-exports it. There is no reason for `app/` code to reach past the barrel.
+- **`@/modules/{module}/application/{verb}{Entity}UseCase`** — pre-wired use case instance (each use case from its own file)
+- **`@/modules/{module}/domain/types`** — public domain type definitions
+- **`@/modules/{module}/infrastructure/session`** — session utilities
+- **`@/packages/@core/*`** — core types (Principal, Policy, etc.) imported directly from core packages
+
+### Still forbidden from `app/`
+
+Everything else inside a module is private:
+- `modules/*/infrastructure/nucleus` — composition root
+- `modules/*/infrastructure/repositories/*` — repository implementations
+- `modules/*/infrastructure/*` (other than `infrastructure/session`) — adapters, database files
+- `modules/*/domain/*` (other than `domain/types`) — business logic functions, repository interfaces, error types
+
+This is the most commonly violated rule. If a server action needs a use case, it imports the pre-wired instance directly from the use case file (e.g., `@/modules/nucleus/application/registerUseCase`). If it needs a type, it imports from `domain/types`. If it needs session utilities, it imports from `infrastructure/session`. Core types come directly from `@/packages/@core/*`.
 
 ## The Repository Boundary
 

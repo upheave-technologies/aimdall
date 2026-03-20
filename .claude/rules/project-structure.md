@@ -34,20 +34,26 @@ Both `packages/@core/{module}/` and `modules/{module-name}/` use the same DDD la
 
 See `ddd-architecture.md` for the full layer rules.
 
-## Module Barrel Exports
+## Module Public API
 
-Every module in `modules/` MUST have an `index.ts` barrel that serves as its **only public API**. The barrel:
-- Exports pre-wired use case instances (not factories)
-- Re-exports session utilities and domain types consumers need
-- Re-exports core types (Principal, Policy, etc.) so consumers never import from `packages/@core/` directly
-- Does NOT export the composition root, repositories, or internal implementation details
+Modules use **fully direct imports** — there is NO `index.ts` barrel, NO `use-cases.ts` composition file, and NO re-export files of any kind. Every import goes to the source file where the code lives. Each use case file exports its own pre-wired instance.
 
-**Files in `app/` import ONLY from the barrel** (e.g., `import { register, type ActionResult } from '@/modules/nucleus'`). This is enforced by the architecture-guard hook.
+### Allowed import paths from `app/`
+
+| Import path | What it provides | Example |
+|-------------|-----------------|---------|
+| `@/modules/{module}/application/{verb}{Entity}UseCase` | Pre-wired use case instance (each use case from its own file) | `import { register } from '@/modules/nucleus/application/registerUseCase'` |
+| `@/modules/{module}/domain/types` | Public domain types | `import type { ActionResult } from '@/modules/nucleus/domain/types'` |
+| `@/modules/{module}/infrastructure/session` | Session utilities | `import { setSession } from '@/modules/nucleus/infrastructure/session'` |
+| `@/packages/@core/*` | Core types (Principal, Policy, etc.) | `import type { Principal } from '@/packages/@core/identity'` |
 
 ## NEVER
 
 - NEVER create a business domain module inside `packages/`. Business logic belongs in `modules/`.
 - NEVER import from `modules/` inside any `packages/` file. Dependency flows one way: modules → packages.
 - NEVER create new top-level directories without explicit approval.
-- NEVER import from `modules/*/infrastructure/`, `modules/*/domain/`, or `modules/*/application/` in `app/` files. Use the module barrel only.
-- NEVER import from `packages/@core/*` in `app/` files. Use the module barrel only.
+- NEVER import from `modules/*/infrastructure/*` in `app/` files — EXCEPT `infrastructure/session` (session utilities are a public surface).
+- NEVER import from `modules/*/infrastructure/nucleus` (composition root) in `app/` files.
+- NEVER import from `modules/*/infrastructure/repositories/*` in `app/` files.
+- NEVER import from `modules/*/domain/*` in `app/` files — EXCEPT `domain/types` (public type definitions are a public surface).
+- NEVER create `index.ts` barrel files, `use-cases.ts` composition files, or re-export files of any kind.

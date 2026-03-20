@@ -5,12 +5,6 @@ description: "Use this agent when implementing backend functionality that requir
 model: sonnet
 skills:
   - ddd-patterns
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/architecture-guard.sh"
 ---
 
 <role>
@@ -45,21 +39,21 @@ Both follow the same internal structure shown below:
 
 ```
 {module}/
-├── index.ts                              # Barrel: public API only
 ├── domain/
+│   ├── types.ts                          # Public API: domain type definitions
 │   ├── {entity}.ts                       # Type definitions + pure validation/business functions
 │   ├── {entity}Repository.ts             # Repository contract (type/interface only)
 │   └── errors.ts                         # Domain error types (optional)
 ├── application/
 │   ├── {module}Error.ts                  # Module-scoped error class
-│   └── {verb}{Entity}UseCase.ts          # One file per use case
+│   └── {verb}{Entity}UseCase.ts          # Public API: one file per use case, exports pre-wired instance
 ├── infrastructure/
+│   ├── session.ts                        # Public API: session utilities
 │   ├── database.ts                       # Database type definition (no connection creation)
 │   ├── {Framework}{Adapter}.ts           # Framework-specific adapters (CASL, etc.)
 │   └── repositories/
 │       └── {ORM}{Entity}Repository.ts    # Implements domain repository interface
 └── schema/
-    ├── index.ts
     ├── enums.ts
     ├── {table}.ts
     └── relations.ts
@@ -92,7 +86,7 @@ export type Result<T, E = Error> =
 
 4. Find existing error patterns. Look at how other modules define module-scoped errors.
 
-5. Find the barrel export pattern. Read existing index.ts files to match the project's export conventions.
+5. Find the public API export pattern. Read existing use case files in `application/` (each exports its own pre-wired instance), `domain/types.ts` (public types), and `infrastructure/session.ts` (session utilities) to match the project's conventions. There are NO barrel files, NO `use-cases.ts`, and NO re-export files of any kind.
 
 Mirror what you find. The existing codebase is the source of truth for naming, import paths, and structural conventions.
 </codebase_discovery>
@@ -249,15 +243,33 @@ export class ModuleError extends Error {
 }
 ```
 
-Barrel export — public API surface only:
+Module Public API — each use case file exports its own pre-wired instance. There is NO `index.ts` barrel, NO `use-cases.ts`, and NO re-export files of any kind:
 ```typescript
-// {module}/index.ts
-export * from './schema';
-export type { DatabaseType } from './infrastructure/database';
-export { makeEntityRepository } from './infrastructure/repositories/{ORM}{Entity}Repository';
-export { makeCreateEntityUseCase } from './application/create{Entity}UseCase';
-export type { Entity } from './domain/{entity}';
-export { ModuleError } from './application/{module}Error';
+// {module}/application/create{Entity}UseCase.ts — exports pre-wired instance
+import { makeEntityRepository } from '../infrastructure/repositories/{ORM}{Entity}Repository';
+import { db } from '../infrastructure/database';
+
+const entityRepository = makeEntityRepository(db);
+
+export const makeCreateEntityUseCase = (entityRepository: IEntityRepository) => {
+  return async (data: CreateEntityInput): Promise<Result<Entity, ModuleError>> => {
+    // ... use case logic
+  };
+};
+
+export const createEntity = makeCreateEntityUseCase(entityRepository);
+
+// {module}/domain/types.ts — public domain type definitions
+export type { Entity, EntityStatus } from './{entity}';
+export { ModuleError } from '../application/{module}Error';
+```
+
+Consumers import directly from each source file:
+```typescript
+import { createEntity } from '@/modules/{module}/application/createEntityUseCase';
+import type { Entity } from '@/modules/{module}/domain/types';
+import { getSession } from '@/modules/{module}/infrastructure/session';
+import type { Principal } from '@/packages/@core/identity';
 ```
 
 Result type handling — always narrow before accessing branches:
@@ -306,7 +318,7 @@ Before writing any code:
 
 3. Identify task scope. Read the task description fully. List what is explicitly requested. Everything not mentioned is out of scope. If APIs are not mentioned, do not create API routes. If tests are not mentioned, do not create tests.
 
-4. Plan files to create vs. modify. New files are safe. Modifying existing files requires explicit task authorization. Adding new exports to an existing index.ts is allowed when your task adds new symbols.
+4. Plan files to create vs. modify. New files are safe. Modifying existing files requires explicit task authorization. Adding new exports to existing public API files (use case files in `application/`, `domain/types.ts`) is allowed when your task adds new symbols.
 
 5. If the task conflicts with existing code or is ambiguous, stop and ask for clarification rather than making assumptions.
 </execution_protocol>

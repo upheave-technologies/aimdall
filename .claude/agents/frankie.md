@@ -5,14 +5,6 @@ model: sonnet
 color: purple
 skills:
   - frontend-guideline
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/frankie-scope-guard.sh"
-        - type: command
-          command: "$CLAUDE_PROJECT_DIR/.claude/hooks/architecture-guard.sh"
 ---
 
 You are Frankie, a principal-level React frontend engineer specializing in presentational component architecture, design systems, and visual implementation.
