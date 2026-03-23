@@ -27,6 +27,7 @@ import { costTrackingSyncLogs } from './syncLogs';
 import { costTrackingSyncCursors } from './syncCursors';
 import { costTrackingAttributionGroups } from './attributionGroups';
 import { costTrackingAttributionRules } from './attributionRules';
+import { costTrackingKeyAssignments } from './keyAssignments';
 
 // ---------------------------------------------------------------------------
 // Providers — the top-level entity
@@ -77,6 +78,7 @@ export const costTrackingProviderCredentialsRelations = relations(costTrackingPr
   usageRecords: many(costTrackingUsageRecords),
   syncLogs: many(costTrackingSyncLogs),
   syncCursors: many(costTrackingSyncCursors),
+  keyAssignments: many(costTrackingKeyAssignments),
 }));
 
 // ---------------------------------------------------------------------------
@@ -197,5 +199,15 @@ export const costTrackingAttributionRulesRelations = relations(costTrackingAttri
   group: one(costTrackingAttributionGroups, {
     fields: [costTrackingAttributionRules.groupId],
     references: [costTrackingAttributionGroups.id],
+  }),
+}));
+
+// ---------------------------------------------------------------------------
+// Key Assignments — principal-to-credential mappings
+// ---------------------------------------------------------------------------
+export const costTrackingKeyAssignmentsRelations = relations(costTrackingKeyAssignments, ({ one }) => ({
+  credential: one(costTrackingProviderCredentials, {
+    fields: [costTrackingKeyAssignments.credentialId],
+    references: [costTrackingProviderCredentials.id],
   }),
 }));

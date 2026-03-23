@@ -19,7 +19,7 @@
 //   const modelRepo = makeModelRepository(db);
 // =============================================================================
 
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, asc } from 'drizzle-orm';
 import { costTrackingProviders } from '../../schema/providers';
 import { costTrackingProviderCredentials } from '../../schema/providerCredentials';
 import { costTrackingModels } from '../../schema/models';
@@ -32,6 +32,7 @@ import {
   IProviderRepository,
   IProviderCredentialRepository,
   IModelRepository,
+  CredentialWithProvider,
 } from '../../domain/repositories';
 import { CostTrackingDatabase } from '../database';
 
@@ -136,6 +137,26 @@ export const makeProviderCredentialRepository = (
   db: CostTrackingDatabase,
 ): IProviderCredentialRepository => ({
   /**
+   * Find an active credential by its internal ID.
+   * ZOMBIE SHIELD: excludes soft-deleted records.
+   */
+  async findById(id: string): Promise<ProviderCredential | null> {
+    const result = await db
+      .select()
+      .from(costTrackingProviderCredentials)
+      .where(
+        and(
+          eq(costTrackingProviderCredentials.id, id),
+          isNull(costTrackingProviderCredentials.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (result.length === 0) return null;
+    return mapToCredential(result[0]);
+  },
+
+  /**
    * Find an active credential by provider ID + external ID.
    * ZOMBIE SHIELD: excludes soft-deleted records.
    */
@@ -235,6 +256,34 @@ export const makeProviderCredentialRepository = (
         deletedAt: credential.deletedAt ?? null,
       })
       .where(eq(costTrackingProviderCredentials.id, credential.id));
+  },
+
+  /**
+   * Find all active credentials joined with their provider's display name.
+   * ZOMBIE SHIELD: excludes soft-deleted credentials.
+   */
+  async findAllWithProvider(): Promise<CredentialWithProvider[]> {
+    const rows = await db
+      .select({
+        id: costTrackingProviderCredentials.id,
+        label: costTrackingProviderCredentials.label,
+        keyHint: costTrackingProviderCredentials.keyHint,
+        providerDisplayName: costTrackingProviders.displayName,
+      })
+      .from(costTrackingProviderCredentials)
+      .innerJoin(
+        costTrackingProviders,
+        eq(costTrackingProviderCredentials.providerId, costTrackingProviders.id),
+      )
+      .where(isNull(costTrackingProviderCredentials.deletedAt))
+      .orderBy(asc(costTrackingProviders.displayName), asc(costTrackingProviderCredentials.label));
+
+    return rows.map((row) => ({
+      id: row.id,
+      label: row.label,
+      keyHint: row.keyHint ?? null,
+      providerDisplayName: row.providerDisplayName,
+    }));
   },
 });
 

@@ -1,7 +1,6 @@
-import { db } from '@/lib/db';
-import { makeUsageRecordRepository } from '@/modules/cost-tracking/infrastructure/repositories/DrizzleUsageRecordRepository';
-import { makeGetUsageSummaryUseCase } from '@/modules/cost-tracking/application/getUsageSummaryUseCase';
-import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/domain/repositories';
+import Link from 'next/link';
+import { getUsageSummary } from '@/modules/cost-tracking/application/getUsageSummaryUseCase';
+import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/domain/types';
 import { ProviderCards } from './_components/ProviderCards';
 import { UsageSummaryTable } from './_components/UsageSummaryTable';
 import { DailySpendTable } from './_components/DailySpendTable';
@@ -93,8 +92,6 @@ export default async function CostTrackingPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const repo = makeUsageRecordRepository(db);
-  const getUsageSummary = makeGetUsageSummaryUseCase(repo);
 
   const startDate = params.from ? new Date(params.from) : undefined;
   const endDate = params.to ? new Date(params.to) : undefined;
@@ -117,7 +114,15 @@ export default async function CostTrackingPage({
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
+        <div className="flex items-baseline gap-4">
+          <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
+          <Link
+            href="/cost-tracking/attributions"
+            className="text-sm text-foreground/60 underline-offset-4 hover:underline"
+          >
+            Attributions →
+          </Link>
+        </div>
         <SyncButton />
       </div>
 

@@ -51,6 +51,12 @@ import {
 import { ProviderUsageClient, RawProviderUsageData, RawProviderCostData } from '../infrastructure/providers/types';
 import { CostTrackingError } from './costTrackingError';
 import { logger } from '../infrastructure/logger';
+import { makeUsageRecordRepository } from '../infrastructure/repositories/DrizzleUsageRecordRepository';
+import { makeProviderCostRepository } from '../infrastructure/repositories/DrizzleProviderCostRepository';
+import { makeSyncLogRepository, makeSyncCursorRepository } from '../infrastructure/repositories/DrizzleSyncRepository';
+import { makeProviderRepository, makeProviderCredentialRepository, makeModelRepository } from '../infrastructure/repositories/DrizzleProviderRepository';
+import { generateDedupKey } from '../infrastructure/dedupKeyHasher';
+import { db } from '@/lib/db';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -520,3 +526,30 @@ async function lookupOrRegisterModel(
     return await modelRepo.findBySlug(providerId, baseSlug);
   }
 }
+
+// =============================================================================
+// SECTION 4: PRE-WIRED INSTANCE
+// =============================================================================
+
+const syncDeps: SyncDeps = {
+  usageRecordRepo: makeUsageRecordRepository(db),
+  providerCostRepo: makeProviderCostRepository(db),
+  syncLogRepo: makeSyncLogRepository(db),
+  syncCursorRepo: makeSyncCursorRepository(db),
+  providerRepo: makeProviderRepository(db),
+  credentialRepo: makeProviderCredentialRepository(db),
+  modelRepo: makeModelRepository(db),
+  hashDedupKey: generateDedupKey,
+};
+
+/**
+ * Pre-wired sync use case — repository deps are resolved, only provider
+ * clients need to be supplied at call time.
+ *
+ * Usage:
+ *   import { syncProviderUsage } from '.../syncProviderUsageUseCase';
+ *   const sync = syncProviderUsage(clients);
+ *   const result = await sync({ startTime, endTime });
+ */
+export const syncProviderUsage = (clients: ProviderUsageClient[]) =>
+  makeSyncProviderUsageUseCase(syncDeps, clients);

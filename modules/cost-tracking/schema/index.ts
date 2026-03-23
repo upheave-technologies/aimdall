@@ -44,6 +44,7 @@ export { costTrackingSyncCursors } from './syncCursors';
 export { costTrackingAttributionGroups } from './attributionGroups';
 export { costTrackingAttributionRules } from './attributionRules';
 export { costTrackingBudgets } from './budgets';
+export { costTrackingKeyAssignments } from './keyAssignments';
 
 // Relations
 export {
@@ -58,4 +59,5 @@ export {
   costTrackingSyncCursorsRelations,
   costTrackingAttributionGroupsRelations,
   costTrackingAttributionRulesRelations,
+  costTrackingKeyAssignmentsRelations,
 } from './relations';

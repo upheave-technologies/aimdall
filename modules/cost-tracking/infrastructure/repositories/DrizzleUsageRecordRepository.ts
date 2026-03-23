@@ -413,6 +413,23 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
   },
 
   /**
+   * Return the most recent bucket_start across all active usage records.
+   * Returns null when no records exist.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  async getLatestBucketStart(): Promise<Date | null> {
+    const result = await db
+      .select({
+        latestBucket: sql<Date | null>`MAX(${costTrackingUsageRecords.bucketStart})`,
+      })
+      .from(costTrackingUsageRecords)
+      .where(isNull(costTrackingUsageRecords.deletedAt));
+
+    const value = result[0]?.latestBucket ?? null;
+    return value;
+  },
+
+  /**
    * Aggregate cost and usage grouped by calendar day and provider.
    * JOINs cost_tracking_providers to enrich each row with slug and displayName.
    * ZOMBIE SHIELD: excludes soft-deleted records (isNull(deletedAt)).

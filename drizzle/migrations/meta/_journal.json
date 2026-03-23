@@ -8,6 +8,20 @@
       "when": 1773929318658,
       "tag": "0000_good_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774005439437,
+      "tag": "0001_dazzling_ozymandias",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774015834246,
+      "tag": "0002_motionless_sentry",
+      "breakpoints": true
     }
   ]
 }

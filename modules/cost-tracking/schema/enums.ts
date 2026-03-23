@@ -135,6 +135,7 @@ export const costTrackingGroupType = pgEnum('cost_tracking_group_type', [
   'environment',
   'cost_center',
   'business_unit',
+  'user',
   'custom',
 ]);
 

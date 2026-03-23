@@ -38,6 +38,7 @@ import { AttributionGroup } from './attributionGroup';
 import { AttributionRule } from './attributionRule';
 import { Budget } from './budget';
 import { ServiceCategory } from './model';
+import { KeyAssignment } from './keyAssignment';
 
 // =============================================================================
 // SECTION 1: AGGREGATION TYPES
@@ -92,6 +93,14 @@ export type DailySpendRow = {
   totalOutputTokens: number;
 };
 
+/** A credential joined with its parent provider's display name. */
+export type CredentialWithProvider = {
+  id: string;
+  label: string;
+  keyHint: string | null;
+  providerDisplayName: string;
+};
+
 // =============================================================================
 // SECTION 2: USAGE RECORD REPOSITORY
 // =============================================================================
@@ -133,6 +142,13 @@ export type IUsageRecordRepository = {
    * ZOMBIE SHIELD: soft-deleted records are excluded.
    */
   findDailySpend: (startDate: Date, endDate: Date) => Promise<DailySpendRow[]>;
+
+  /**
+   * Return the most recent bucket_start across all active usage records.
+   * Returns null when no records exist.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  getLatestBucketStart: () => Promise<Date | null>;
 };
 
 // =============================================================================
@@ -232,6 +248,9 @@ export type IProviderRepository = {
 // =============================================================================
 
 export type IProviderCredentialRepository = {
+  /** Find a credential by its internal ID. */
+  findById: (id: string) => Promise<ProviderCredential | null>;
+
   /** Find a credential by provider ID + external ID (provider's reference). */
   findByExternalId: (providerId: string, externalId: string) => Promise<ProviderCredential | null>;
 
@@ -246,6 +265,9 @@ export type IProviderCredentialRepository = {
 
   /** Update an existing credential. */
   update: (credential: ProviderCredential) => Promise<void>;
+
+  /** Find all active credentials joined with their provider display name. */
+  findAllWithProvider: () => Promise<CredentialWithProvider[]>;
 };
 
 // =============================================================================
@@ -274,6 +296,36 @@ export type IModelRepository = {
 // SECTION 9: ATTRIBUTION REPOSITORY
 // =============================================================================
 
+/**
+ * A summary row for per-attribution-group usage aggregation.
+ * Populated via SQL-level JOIN: attribution_groups → attribution_rules → usage_records.
+ * All token counts and costs are summed across the requested date range.
+ * totalCost is a numeric string matching the calculatedCostAmount precision
+ * convention (8 decimal places) to prevent IEEE-754 rounding.
+ *
+ * When linkedEntityType = 'principal', linkedEntityName and linkedEntityEmail are
+ * populated via LEFT JOIN to identity_principals. Otherwise they are null.
+ */
+export type AttributionSummaryRow = {
+  groupId: string;
+  groupSlug: string;
+  groupDisplayName: string;
+  groupType: string;
+  linkedEntityType: string | null;
+  linkedEntityId: string | null;
+  /** Populated via JOIN to identity_principals when linkedEntityType = 'principal'. */
+  linkedEntityName: string | null;
+  /** Populated via JOIN to identity_principals when linkedEntityType = 'principal'. */
+  linkedEntityEmail: string | null;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  /** Numeric string, 8 decimal places. */
+  totalCost: string;
+  recordCount: number;
+  /** Number of active rules for this group. */
+  ruleCount: number;
+};
+
 export type IAttributionRepository = {
   /** Find an attribution group by its slug (active records only). */
   findGroupBySlug: (slug: string) => Promise<AttributionGroup | null>;
@@ -284,6 +336,12 @@ export type IAttributionRepository = {
   /** Insert a new attribution group. */
   createGroup: (group: AttributionGroup) => Promise<void>;
 
+  /** Update a group's mutable fields. */
+  updateGroup: (group: AttributionGroup) => Promise<void>;
+
+  /** Soft-delete a group (set deletedAt). */
+  softDeleteGroup: (id: string) => Promise<void>;
+
   /** Find all active attribution rules for a given group. */
   findRulesByGroup: (groupId: string) => Promise<AttributionRule[]>;
 
@@ -292,6 +350,55 @@ export type IAttributionRepository = {
 
   /** Insert a new attribution rule. */
   createRule: (rule: AttributionRule) => Promise<void>;
+
+  /** Soft-delete a rule (set deletedAt). */
+  softDeleteRule: (id: string) => Promise<void>;
+
+  /** Find all active groups, optionally filtered by group type. */
+  findGroupsByType: (groupType?: string) => Promise<AttributionGroup[]>;
+
+  /** Find a group by its linked entity. Returns null when no matching group exists. */
+  findGroupByEntity: (entityType: string, entityId: string) => Promise<AttributionGroup | null>;
+
+  /**
+   * Find an existing rule matching the same group + dimension + matchType + matchValue.
+   * Used to prevent duplicate rule creation.
+   */
+  findDuplicateRule: (
+    groupId: string,
+    dimension: string,
+    matchType: string,
+    matchValue: string,
+  ) => Promise<AttributionRule | null>;
+
+  /**
+   * Aggregate usage by attribution group over a date range.
+   *
+   * JOIN logic (SQL-level, for exact and in_list match types only):
+   *   attribution_groups → attribution_rules → usage_records
+   *
+   * The join condition varies by rule dimension:
+   *   - credential:        usage_records.credential_id
+   *   - provider:          usage_records.provider_id
+   *   - segment:           usage_records.segment_id
+   *   - model:             usage_records.model_id
+   *   - model_slug:        usage_records.model_slug
+   *   - service_category:  usage_records.service_category
+   *   - service_tier:      usage_records.service_tier
+   *   - region:            usage_records.region
+   *
+   * Regex and prefix rules are silently excluded from the SQL aggregation.
+   *
+   * When linkedEntityType = 'principal', LEFT JOINs identity_principals to populate
+   * linkedEntityName and linkedEntityEmail.
+   *
+   * ZOMBIE SHIELD: all three tables filtered by deletedAt IS NULL.
+   */
+  getAttributionSummary: (
+    startDate: Date,
+    endDate: Date,
+    groupType?: string,
+  ) => Promise<AttributionSummaryRow[]>;
 };
 
 // =============================================================================
@@ -324,4 +431,122 @@ export type IBudgetRepository = {
     status: Budget['status'],
     lastEvaluatedAt: Date,
   ) => Promise<void>;
+};
+
+// =============================================================================
+// SECTION 11: KEY ASSIGNMENT REPOSITORY
+// =============================================================================
+
+/**
+ * A summary row for per-user usage aggregation.
+ * Populated via a three-way JOIN: principals → key_assignments → usage_records.
+ * All token counts and costs are summed across the requested date range.
+ * totalCost is a numeric string matching the calculatedCostAmount precision
+ * convention (8 decimal places) to prevent IEEE-754 rounding.
+ */
+export type UserUsageRow = {
+  /** Internal UUID from identity_principals (soft link). */
+  principalId: string;
+  /** Display name of the principal. */
+  principalName: string;
+  /** Email address of the principal, if present. */
+  principalEmail: string | null;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCost: string;
+  recordCount: number;
+  /** Number of distinct credentials assigned to this principal. */
+  credentialCount: number;
+};
+
+/** A key assignment enriched with credential label and provider name for display. */
+export type EnrichedKeyAssignment = KeyAssignment & {
+  credentialLabel: string;
+  providerDisplayName: string;
+};
+
+export type IKeyAssignmentRepository = {
+  /**
+   * Find an active key assignment by its internal ID.
+   * ZOMBIE SHIELD: soft-deleted assignments are excluded.
+   */
+  findById: (id: string) => Promise<KeyAssignment | null>;
+
+  /**
+   * Find all active key assignments for a given principal.
+   * ZOMBIE SHIELD: soft-deleted assignments are excluded.
+   */
+  findByPrincipalId: (principalId: string) => Promise<KeyAssignment[]>;
+
+  /**
+   * Find all active key assignments for a given credential.
+   * ZOMBIE SHIELD: soft-deleted assignments are excluded.
+   */
+  findByCredentialId: (credentialId: string) => Promise<KeyAssignment[]>;
+
+  /**
+   * Find a single active assignment for a (principalId, credentialId) pair.
+   * Used to prevent duplicate assignments.
+   * ZOMBIE SHIELD: soft-deleted assignments are excluded.
+   */
+  findByPrincipalAndCredential: (
+    principalId: string,
+    credentialId: string,
+  ) => Promise<KeyAssignment | null>;
+
+  /** Persist a new key assignment. */
+  save: (assignment: KeyAssignment) => Promise<void>;
+
+  /**
+   * Soft-delete a key assignment (set deletedAt).
+   * Never hard-deletes — preserves audit trail.
+   */
+  softDelete: (id: string) => Promise<void>;
+
+  /**
+   * Aggregate token and cost totals grouped by principal.
+   * Performs a three-way JOIN: identity_principals → cost_tracking_key_assignments
+   * → cost_tracking_usage_records, then aggregates over the given date range.
+   *
+   * ZOMBIE SHIELD: soft-deleted assignments and usage records are excluded.
+   */
+  getUserUsageSummary: (startDate: Date, endDate: Date) => Promise<UserUsageRow[]>;
+
+  /**
+   * Find all active key assignments for a principal, enriched with credential
+   * label and provider display name via JOINs.
+   * ZOMBIE SHIELD: soft-deleted assignments are excluded.
+   */
+  findByPrincipalIdEnriched: (principalId: string) => Promise<EnrichedKeyAssignment[]>;
+};
+
+// =============================================================================
+// SECTION 12: PRINCIPAL QUERY REPOSITORY
+// =============================================================================
+
+/**
+ * A minimal principal record shape used within the cost-tracking module.
+ * Defined inline to keep the domain layer free of cross-package type imports.
+ */
+export type PrincipalRecord = {
+  id: string;
+  type: string;
+  status: string;
+  name: string;
+  email: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/**
+ * Read-only query interface for Principal records.
+ *
+ * The identity package's IPrincipalRepository does not expose a findAll
+ * method, and it is a nucleus-managed read-only package. This interface
+ * defines the query capabilities the cost-tracking module needs from the
+ * identity_principals table.
+ */
+export type IPrincipalQueryRepository = {
+  /** Find all active principals, ordered by name. */
+  findAll: () => Promise<PrincipalRecord[]>;
 };

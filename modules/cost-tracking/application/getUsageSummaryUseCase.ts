@@ -13,6 +13,8 @@
 import { Result } from '@/packages/shared/lib/result';
 import { IUsageRecordRepository, UsageSummaryRow, DailySpendRow } from '../domain/repositories';
 import { CostTrackingError } from './costTrackingError';
+import { makeUsageRecordRepository } from '../infrastructure/repositories/DrizzleUsageRecordRepository';
+import { db } from '@/lib/db';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -73,3 +75,11 @@ export const makeGetUsageSummaryUseCase = (repo: IUsageRecordRepository) => {
     }
   };
 };
+
+// =============================================================================
+// SECTION 3: PRE-WIRED INSTANCE
+// =============================================================================
+
+const usageRecordRepo = makeUsageRecordRepository(db);
+
+export const getUsageSummary = makeGetUsageSummaryUseCase(usageRecordRepo);

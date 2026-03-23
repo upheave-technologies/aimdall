@@ -1,28 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
 
 export const maxDuration = 120;
 
-import * as costTrackingSchema from '@/modules/cost-tracking/schema';
-import { makeUsageRecordRepository } from '@/modules/cost-tracking/infrastructure/repositories/DrizzleUsageRecordRepository';
-import { makeProviderCostRepository } from '@/modules/cost-tracking/infrastructure/repositories/DrizzleProviderCostRepository';
-import { makeSyncLogRepository, makeSyncCursorRepository } from '@/modules/cost-tracking/infrastructure/repositories/DrizzleSyncRepository';
-import {
-  makeProviderRepository,
-  makeProviderCredentialRepository,
-  makeModelRepository,
-} from '@/modules/cost-tracking/infrastructure/repositories/DrizzleProviderRepository';
-import { generateDedupKey } from '@/modules/cost-tracking/infrastructure/dedupKeyHasher';
-import { makeSyncProviderUsageUseCase } from '@/modules/cost-tracking/application/syncProviderUsageUseCase';
+import { syncProviderUsage } from '@/modules/cost-tracking/application/syncProviderUsageUseCase';
 import { makeOpenAIUsageClient } from '@/modules/cost-tracking/infrastructure/providers/openaiUsageClient';
 import { makeAnthropicUsageClient } from '@/modules/cost-tracking/infrastructure/providers/anthropicUsageClient';
 import { makeVertexUsageClient } from '@/modules/cost-tracking/infrastructure/providers/vertexUsageClient';
 import type { ProviderUsageClient } from '@/modules/cost-tracking/infrastructure/providers/types';
 import { logger } from '@/modules/cost-tracking/infrastructure/logger';
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool, { schema: costTrackingSchema });
 
 export async function POST(request: NextRequest) {
   logger.info('route.sync.request', {
@@ -66,19 +51,6 @@ export async function POST(request: NextRequest) {
     providers: clients.map((c) => c.providerSlug),
   });
 
-  const deps = {
-    usageRecordRepo: makeUsageRecordRepository(db),
-    providerCostRepo: makeProviderCostRepository(db),
-    syncLogRepo: makeSyncLogRepository(db),
-    syncCursorRepo: makeSyncCursorRepository(db),
-    providerRepo: makeProviderRepository(db),
-    credentialRepo: makeProviderCredentialRepository(db),
-    modelRepo: makeModelRepository(db),
-    hashDedupKey: generateDedupKey,
-  };
-
-  const syncUsage = makeSyncProviderUsageUseCase(deps, clients);
-
   let startTime: Date | undefined;
   let endTime: Date | undefined;
 
@@ -90,6 +62,7 @@ export async function POST(request: NextRequest) {
     // Use defaults
   }
 
+  const syncUsage = syncProviderUsage(clients);
   const result = await syncUsage({ startTime, endTime });
 
   if (!result.success) {

@@ -40,6 +40,12 @@ export const costTrackingAttributionGroups = pgTable(
 
     metadata: jsonb('metadata'),
 
+    // Optional link to an external entity (e.g., a Principal from the Identity
+    // module). This is a soft reference — no FK constraint — following the same
+    // cross-module linking pattern used by cost_tracking_key_assignments.
+    linkedEntityType: text('linked_entity_type'),
+    linkedEntityId: text('linked_entity_id'),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 
     updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -59,5 +65,10 @@ export const costTrackingAttributionGroups = pgTable(
     index('cost_tracking_attribution_groups_group_type_idx').on(table.groupType),
     index('cost_tracking_attribution_groups_parent_id_idx').on(table.parentId),
     index('cost_tracking_attribution_groups_deleted_at_idx').on(table.deletedAt),
+
+    // Lookup by linked entity (e.g., "which group is linked to this principal?")
+    index('cost_tracking_attribution_groups_linked_entity_idx')
+      .on(table.linkedEntityType, table.linkedEntityId)
+      .where(isNull(table.deletedAt)),
   ],
 );
