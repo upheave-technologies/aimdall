@@ -174,6 +174,7 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
             'x-api-key': adminApiKey,
             'anthropic-version': '2023-06-01',
           },
+          cache: 'no-store',
           signal: AbortSignal.timeout(30_000),
         });
       } catch (networkError) {
@@ -300,6 +301,7 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
             'x-api-key': adminApiKey,
             'anthropic-version': '2023-06-01',
           },
+          cache: 'no-store',
           signal: AbortSignal.timeout(30_000),
         });
       } catch (networkError) {

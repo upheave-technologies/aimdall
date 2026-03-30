@@ -16,7 +16,7 @@
 //   const { syncLogRepo, syncCursorRepo } = makeSyncRepositories(db);
 // =============================================================================
 
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { costTrackingSyncLogs } from '../../schema/syncLogs';
 import { costTrackingSyncCursors } from '../../schema/syncCursors';
 import { SyncLog, SyncStatus } from '../../domain/syncLog';
@@ -133,12 +133,49 @@ export const makeSyncCursorRepository = (db: CostTrackingDatabase): ISyncCursorR
   /**
    * Upsert a sync cursor — insert if it doesn't exist, update if it does.
    * Keyed on (providerId, credentialId, serviceCategory).
+   *
+   * Uses a manual find-then-update-or-insert instead of onConflictDoUpdate
+   * because PostgreSQL unique constraints treat NULL != NULL, so the conflict
+   * clause never fires when credentialId is NULL, producing duplicate rows.
    */
   async upsert(
     cursor: Omit<SyncCursor, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<SyncCursor> {
-    const id = createId();
     const now = new Date();
+
+    const credentialCondition =
+      cursor.credentialId !== undefined
+        ? eq(costTrackingSyncCursors.credentialId, cursor.credentialId)
+        : isNull(costTrackingSyncCursors.credentialId);
+
+    const existing = await db
+      .select()
+      .from(costTrackingSyncCursors)
+      .where(
+        and(
+          eq(costTrackingSyncCursors.providerId, cursor.providerId),
+          credentialCondition,
+          eq(costTrackingSyncCursors.serviceCategory, cursor.serviceCategory),
+        ),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [row] = await db
+        .update(costTrackingSyncCursors)
+        .set({
+          lastSyncedBucket: cursor.lastSyncedBucket,
+          lastPageToken: cursor.lastPageToken ?? null,
+          metadata: cursor.metadata ?? null,
+          updatedAt: now,
+        })
+        .where(eq(costTrackingSyncCursors.id, existing[0].id))
+        .returning();
+
+      return mapToSyncCursor(row);
+    }
+
+    const id = createId();
 
     const [row] = await db
       .insert(costTrackingSyncCursors)
@@ -152,19 +189,6 @@ export const makeSyncCursorRepository = (db: CostTrackingDatabase): ISyncCursorR
         metadata: cursor.metadata ?? null,
         updatedAt: now,
         createdAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [
-          costTrackingSyncCursors.providerId,
-          costTrackingSyncCursors.credentialId,
-          costTrackingSyncCursors.serviceCategory,
-        ],
-        set: {
-          lastSyncedBucket: cursor.lastSyncedBucket,
-          lastPageToken: cursor.lastPageToken ?? null,
-          metadata: cursor.metadata ?? null,
-          updatedAt: now,
-        },
       })
       .returning();
 
@@ -188,7 +212,7 @@ export const makeSyncCursorRepository = (db: CostTrackingDatabase): ISyncCursorR
           eq(costTrackingSyncCursors.providerId, providerId),
           credentialId !== undefined
             ? eq(costTrackingSyncCursors.credentialId, credentialId)
-            : eq(costTrackingSyncCursors.credentialId, null as unknown as string),
+            : isNull(costTrackingSyncCursors.credentialId),
           eq(costTrackingSyncCursors.serviceCategory, serviceCategory),
         ),
       )

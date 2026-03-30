@@ -4,7 +4,8 @@ import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/dom
 import { ProviderCards } from './_components/ProviderCards';
 import { UsageSummaryTable } from './_components/UsageSummaryTable';
 import { DailySpendTable } from './_components/DailySpendTable';
-import { SyncButton } from './_components/SyncButton';
+import { SyncButtonContainer } from './_containers/SyncButtonContainer';
+import { DateRangeFilterContainer } from './_containers/DateRangeFilterContainer';
 
 type SearchParams = Promise<{ from?: string; to?: string }>;
 
@@ -13,6 +14,7 @@ type SearchParams = Promise<{ from?: string; to?: string }>;
 // ---------------------------------------------------------------------------
 
 type LegacyProviderSummary = {
+  providerId: string;
   provider: string; // providerDisplayName
   totalCostUsd: string;
   totalRequests: number;
@@ -31,6 +33,9 @@ type LegacySummaryRow = {
   totalCacheCreationTokens: number;
   totalRequests: number;
   totalCostUsd: string;
+  providerId?: string;
+  modelSlug?: string;
+  credentialId?: string;
 };
 
 type LegacyDailySpendRow = {
@@ -45,6 +50,7 @@ type LegacyDailySpendRow = {
 
 function toProviderSummary(row: UsageSummaryRow): LegacyProviderSummary {
   return {
+    providerId: row.providerId,
     provider: row.providerDisplayName,
     totalCostUsd: row.totalCost,
     totalRequests: row.totalRequests,
@@ -71,6 +77,9 @@ function toSummaryRow(row: UsageSummaryRow): LegacySummaryRow {
     totalCacheCreationTokens: 0, // field removed in v2 schema
     totalRequests: row.totalRequests,
     totalCostUsd: row.totalCost,
+    providerId: row.providerId,
+    modelSlug: row.modelSlug,
+    credentialId: row.credentialId,
   };
 }
 
@@ -122,9 +131,17 @@ export default async function CostTrackingPage({
           >
             Attributions →
           </Link>
+          <Link
+            href="/cost-tracking/explore"
+            className="text-sm text-foreground/60 underline-offset-4 hover:underline"
+          >
+            Explorer →
+          </Link>
         </div>
-        <SyncButton />
+        <SyncButtonContainer />
       </div>
+
+      <DateRangeFilterContainer />
 
       <ProviderCards data={byProvider.map(toProviderSummary)} />
 

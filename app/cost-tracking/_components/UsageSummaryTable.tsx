@@ -1,3 +1,5 @@
+import { ExploreLink } from './ExploreLink';
+
 type SummaryRow = {
   provider: string;
   model: string;
@@ -9,6 +11,9 @@ type SummaryRow = {
   totalCacheCreationTokens: number;
   totalRequests: number;
   totalCostUsd: string;
+  providerId?: string;
+  modelSlug?: string;
+  credentialId?: string;
 };
 
 function formatTokens(n: number): string {
@@ -75,10 +80,30 @@ export function UsageSummaryTable({
                   className="border-b border-foreground/5 last:border-0"
                 >
                   <td className="px-4 py-2">
-                    {row.provider}
+                    {row.providerId ? (
+                      <ExploreLink dimension="provider" value={row.providerId} label={row.provider}>
+                        {row.provider}
+                      </ExploreLink>
+                    ) : (
+                      row.provider
+                    )}
                   </td>
                   <td className="px-4 py-2 font-mono text-xs">
-                    {groupBy === 'model' ? row.model : row.credential}
+                    {groupBy === 'model' ? (
+                      row.modelSlug ? (
+                        <ExploreLink dimension="model" value={row.modelSlug} label={row.model}>
+                          {row.model}
+                        </ExploreLink>
+                      ) : (
+                        row.model
+                      )
+                    ) : row.credentialId ? (
+                      <ExploreLink dimension="credential" value={row.credentialId} label={row.credential}>
+                        {row.credential}
+                      </ExploreLink>
+                    ) : (
+                      row.credential
+                    )}
                   </td>
                   {groupBy === 'credential' && (
                     <td className="px-4 py-2 text-foreground/60">

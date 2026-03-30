@@ -39,6 +39,7 @@ import { AttributionRule } from './attributionRule';
 import { Budget } from './budget';
 import { ServiceCategory } from './model';
 import { KeyAssignment } from './keyAssignment';
+import { ExplorerQuery, ExplorerResult } from './explorer';
 
 // =============================================================================
 // SECTION 1: AGGREGATION TYPES
@@ -149,6 +150,30 @@ export type IUsageRecordRepository = {
    * ZOMBIE SHIELD: soft-deleted records are excluded.
    */
   getLatestBucketStart: () => Promise<Date | null>;
+
+  /**
+   * Parameterized aggregation for the cost explorer.
+   * Accepts any grouping dimension, any filter combination, date range,
+   * and pagination. Returns paginated rows, time-series, and aggregate totals.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  explore: (query: ExplorerQuery) => Promise<ExplorerResult>;
+
+  /**
+   * Return distinct non-null values for a single dimension column from usage records.
+   * Used to populate filter dropdowns in the explorer.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  getDistinctValues: (
+    column: 'model_slug' | 'service_tier' | 'context_tier' | 'region',
+  ) => Promise<string[]>;
+
+  /**
+   * Return distinct segment id + display_name pairs referenced by usage records.
+   * JOINs cost_tracking_provider_segments to resolve display names.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  getDistinctSegments: () => Promise<Array<{ id: string; displayName: string }>>;
 };
 
 // =============================================================================

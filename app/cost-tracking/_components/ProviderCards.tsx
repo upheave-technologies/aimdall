@@ -1,4 +1,7 @@
+import { ExploreLink } from './ExploreLink';
+
 type ProviderSummary = {
+  providerId: string;
   provider: string;
   totalCostUsd: string;
   totalRequests: number;
@@ -30,7 +33,9 @@ export function ProviderCards({ data }: { data: ProviderSummary[] }) {
               className="rounded-lg border border-foreground/10 p-4"
             >
               <p className="text-sm text-foreground/60">
-                {row.provider}
+                <ExploreLink dimension="provider" value={row.providerId} label={row.provider}>
+                  {row.provider}
+                </ExploreLink>
               </p>
               <p className="text-2xl font-semibold">${cost.toFixed(2)}</p>
               <div className="mt-2 flex gap-4 text-xs text-foreground/50">

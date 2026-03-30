@@ -132,6 +132,7 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
+          cache: 'no-store',
           signal: AbortSignal.timeout(30_000),
         });
       } catch (networkError) {

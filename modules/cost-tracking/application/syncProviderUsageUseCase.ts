@@ -98,6 +98,17 @@ export type SyncDeps = {
 };
 
 // =============================================================================
+// SECTION 2: CONSTANTS
+// =============================================================================
+
+/**
+ * Default lookback window used when no sync cursor exists for a provider
+ * (e.g. first sync, or cursor was lost). 30 days is safe because all upserts
+ * are idempotent via the dedup key — duplicate records are never created.
+ */
+const DEFAULT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1_000; // 30 days
+
+// =============================================================================
 // SECTION 2: USE CASE FACTORY
 // =============================================================================
 
@@ -143,12 +154,32 @@ export const makeSyncProviderUsageUseCase = (
             continue;
           }
 
-          // Step 2a-ii: Create per-provider sync log
+          // Step 2a-ii: Resolve per-provider sync cursor for incremental start time
+          const providerCursor = await deps.syncCursorRepo.findCursor(
+            provider.id,
+            undefined,
+            'text_generation',
+          );
+
+          const providerStartTime =
+            !data.forceFullSync && providerCursor
+              ? providerCursor.lastSyncedBucket
+              : new Date(endTime.getTime() - DEFAULT_LOOKBACK_MS);
+
+          logger.info('sync.provider.cursor', {
+            provider: client.providerSlug,
+            cursorFound: providerCursor !== null,
+            lastSyncedBucket: providerCursor?.lastSyncedBucket.toISOString() ?? null,
+            resolvedStartTime: providerStartTime.toISOString(),
+            forceFullSync: data.forceFullSync ?? false,
+          });
+
+          // Step 2a-iii: Create per-provider sync log
           const syncLog = await deps.syncLogRepo.create({
             providerId: provider.id,
             syncType: 'incremental',
             status: 'running',
-            periodStart: startTime,
+            periodStart: providerStartTime,
             periodEnd: endTime,
             recordsFetched: 0,
             recordsCreated: 0,
@@ -158,11 +189,11 @@ export const makeSyncProviderUsageUseCase = (
           });
 
           // Step 2b: Fetch usage data
-          const rawUsage: RawProviderUsageData[] = await client.fetchUsage(startTime, endTime);
+          const rawUsage: RawProviderUsageData[] = await client.fetchUsage(providerStartTime, endTime);
 
           // Step 2c: Fetch cost data (if the client supports it)
           const rawCosts: RawProviderCostData[] = client.fetchCosts
-            ? await client.fetchCosts(startTime, endTime)
+            ? await client.fetchCosts(providerStartTime, endTime)
             : [];
 
           // Step 2d: Map raw usage records → UsageRecord domain entities

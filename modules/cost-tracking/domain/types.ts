@@ -28,3 +28,16 @@ export type { ProviderCredential } from './providerCredential';
 export type { Model } from './model';
 export type { AttributionGroup, GroupType } from './attributionGroup';
 export type { AttributionRule, AttributionDimension, MatchType } from './attributionRule';
+
+export type {
+  ExplorerDimension,
+  ExplorerFilter,
+  ExplorerQuery,
+  ExplorerResultRow,
+  TimeSeriesPoint,
+  ExplorerResult,
+  ExplorerMetricKey,
+  ExplorerMetricConfig,
+} from './explorer';
+
+export { selectMetricsForContext } from './explorer';

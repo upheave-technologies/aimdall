@@ -1,3 +1,5 @@
+import { ExploreLink } from './ExploreLink';
+
 type DailySpendRow = {
   date: string;
   providerSlug: string;
@@ -88,7 +90,11 @@ export function DailySpendTable({ data }: { data: DailySpendRow[] }) {
 
               return (
                 <tr key={date} className="border-b border-foreground/5 last:border-0">
-                  <td className="px-4 py-2 font-mono text-xs">{date}</td>
+                  <td className="px-4 py-2 font-mono text-xs">
+                    <ExploreLink dimension="from" value={date} params={{ to: date }}>
+                      {date}
+                    </ExploreLink>
+                  </td>
                   <td className="px-4 py-2">
                     <div className="flex h-4 w-full overflow-hidden rounded-sm">
                       {allProviderSlugs.map((slug) => {

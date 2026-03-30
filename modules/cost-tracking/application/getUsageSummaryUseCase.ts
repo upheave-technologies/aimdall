@@ -12,6 +12,7 @@
 
 import { Result } from '@/packages/shared/lib/result';
 import { IUsageRecordRepository, UsageSummaryRow, DailySpendRow } from '../domain/repositories';
+import { resolveDateRange } from '../domain/dateRange';
 import { CostTrackingError } from './costTrackingError';
 import { makeUsageRecordRepository } from '../infrastructure/repositories/DrizzleUsageRecordRepository';
 import { db } from '@/lib/db';
@@ -48,10 +49,8 @@ export const makeGetUsageSummaryUseCase = (repo: IUsageRecordRepository) => {
     data: GetUsageSummaryInput,
   ): Promise<Result<UsageSummary, CostTrackingError>> => {
     try {
-      // Step 1: Resolve date range defaults (last 30 days)
-      const endDate = data.endDate ?? new Date();
-      const startDate =
-        data.startDate ?? new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1_000);
+      // Step 1: Resolve date range (shared logic — see domain/dateRange.ts)
+      const { startDate, endDate } = resolveDateRange(data.startDate, data.endDate);
 
       // Step 2: Fetch all summary dimensions in parallel
       const [byProvider, byModel, byCredential, bySegment, dailySpend] = await Promise.all([
