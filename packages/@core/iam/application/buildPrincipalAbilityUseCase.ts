@@ -25,9 +25,6 @@ import { Result } from '../../../shared/lib/result';
 import { IEntitlementRepository } from '../domain/entitlementRepository';
 import { AccessError } from './accessError';
 import { defineAbilityFor, AppAbility } from '../infrastructure/CASLAbilityFactory';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type BuildPrincipalAbilityInput = {
   principalId: string;
@@ -102,15 +99,3 @@ export const makeBuildPrincipalAbilityUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.buildPrincipalAbility,
-  useCase: 'makeBuildPrincipalAbilityUseCase',
-  preconditions: [EFFECTS.identity.principal.exists, EFFECTS.iam.entitlement.granted],
-  effects: [],
-  query: true,
-});

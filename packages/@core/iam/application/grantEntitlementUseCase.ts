@@ -18,9 +18,6 @@ import { canGrantEntitlement, Entitlement } from '../domain/entitlement';
 import { IEntitlementRepository } from '../domain/entitlementRepository';
 import { IPolicyRepository } from '../domain/policyRepository';
 import { AccessError } from './accessError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type GrantEntitlementInput = {
   principalId: string;
@@ -95,14 +92,3 @@ export const makeGrantEntitlementUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.grantEntitlement,
-  useCase: 'makeGrantEntitlementUseCase',
-  preconditions: [EFFECTS.iam.policy.exists, EFFECTS.identity.principal.exists],
-  effects: [EFFECTS.iam.entitlement.granted],
-});

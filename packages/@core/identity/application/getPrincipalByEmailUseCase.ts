@@ -13,9 +13,6 @@ import { Result } from '../../../shared/lib/result';
 import { Principal, validatePrincipalEmail } from '../domain/principal';
 import { IPrincipalRepository } from '../domain/principalRepository';
 import { IdentityError } from './identityError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -70,15 +67,3 @@ export const makeGetPrincipalByEmailUseCase = (repo: IPrincipalRepository) => {
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.identity.getPrincipalByEmail,
-  useCase: 'makeGetPrincipalByEmailUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [],
-  query: true,
-});

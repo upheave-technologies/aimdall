@@ -17,9 +17,6 @@ import { Result } from '../../../shared/lib/result';
 import { Principal, createPrincipal } from '../domain/principal';
 import { IPrincipalRepository } from '../domain/principalRepository';
 import { IdentityError } from './identityError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -100,14 +97,3 @@ export const makeCreatePrincipalUseCase = (repo: IPrincipalRepository) => {
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.identity.createPrincipal,
-  useCase: 'makeCreatePrincipalUseCase',
-  preconditions: [],
-  effects: [EFFECTS.identity.principal.exists, EFFECTS.identity.principal.active],
-});

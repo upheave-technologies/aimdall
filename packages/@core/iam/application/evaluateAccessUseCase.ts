@@ -22,9 +22,6 @@ import { parseAction } from '../domain/action';
 import { IEntitlementRepository } from '../domain/entitlementRepository';
 import { AccessError } from './accessError';
 import { defineAbilityFor } from '../infrastructure/CASLAbilityFactory';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type EvaluateAccessInput = {
   principalId: string;
@@ -132,14 +129,3 @@ export const makeEvaluateAccessUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.evaluateAccess,
-  useCase: 'makeEvaluateAccessUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [EFFECTS.iam.access.evaluated],
-});

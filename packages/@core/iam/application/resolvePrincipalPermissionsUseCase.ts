@@ -16,9 +16,6 @@
 import { Result } from '../../../shared/lib/result';
 import { IEntitlementRepository } from '../domain/entitlementRepository';
 import { AccessError } from './accessError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type ResolvePrincipalPermissionsInput = {
   principalId: string;
@@ -120,14 +117,3 @@ export const makeResolvePrincipalPermissionsUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.resolvePrincipalPermissions,
-  useCase: 'makeResolvePrincipalPermissionsUseCase',
-  preconditions: [EFFECTS.identity.principal.exists, EFFECTS.iam.entitlement.granted],
-  effects: [EFFECTS.iam.permissions.resolved],
-});

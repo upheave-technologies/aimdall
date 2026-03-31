@@ -16,9 +16,6 @@ import { Result } from '../../../shared/lib/result';
 import { IEntitlementRepository } from '../domain/entitlementRepository';
 import { IPolicyRepository } from '../domain/policyRepository';
 import { AccessError } from './accessError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type RevokeEntitlementInput = {
   principalId: string;
@@ -84,14 +81,3 @@ export const makeRevokeEntitlementUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.revokeEntitlement,
-  useCase: 'makeRevokeEntitlementUseCase',
-  preconditions: [EFFECTS.iam.entitlement.granted],
-  effects: [EFFECTS.iam.entitlement.revoked],
-});

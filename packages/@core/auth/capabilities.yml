@@ -3,7 +3,7 @@
 
 module: auth
 capabilities:
-  # hash: 4c39ef0eb55cd5de
+  # hash: 4f64c2557b9781bb
   - name: change-password
     use_case: makeChangePasswordUseCase
     preconditions: 
@@ -14,7 +14,7 @@ capabilities:
     context:
       credential_type: password
 
-  # hash: c1f965f524a51d43
+  # hash: fff19fe5c88857aa
   - name: create-api-key
     use_case: makeCreateApiKeyUseCase
     preconditions: 
@@ -24,7 +24,7 @@ capabilities:
     context:
       credential_type: api_key
 
-  # hash: 717d10fdbf0fda48
+  # hash: b0b941b6de1a3d05
   - name: create-password-credential
     use_case: makeCreatePasswordCredentialUseCase
     preconditions: 
@@ -34,7 +34,7 @@ capabilities:
     context:
       credential_type: password
 
-  # hash: 42e0808403504f78
+  # hash: c2644790516e5a55
   - name: link-oauth-provider
     use_case: makeLinkOAuthProviderUseCase
     preconditions: 
@@ -44,7 +44,7 @@ capabilities:
     context:
       credential_type: oauth
 
-  # hash: f51d4d5ce9c3299f
+  # hash: 641513986d768a57
   - name: revoke-all-credentials
     use_case: makeRevokeAllCredentialsUseCase
     preconditions: 
@@ -52,7 +52,7 @@ capabilities:
     effects: 
       - "auth:credential:all-revoked"
 
-  # hash: 1cf7901252b4d017
+  # hash: 887e82d60d9e12b1
   - name: revoke-credential
     use_case: makeRevokeCredentialUseCase
     preconditions: 
@@ -60,7 +60,7 @@ capabilities:
     effects: 
       - "auth:credential:revoked"
 
-  # hash: 4325027ec345188e
+  # hash: a860305590a767a9
   - name: verify-api-key
     use_case: makeVerifyApiKeyUseCase
     preconditions: 
@@ -70,7 +70,7 @@ capabilities:
     context:
       credential_type: api_key
 
-  # hash: 016269310f61b4f4
+  # hash: 356bcf32b061f75f
   - name: verify-oauth-provider
     use_case: makeVerifyOAuthProviderUseCase
     preconditions: 
@@ -80,7 +80,7 @@ capabilities:
     context:
       credential_type: oauth
 
-  # hash: b1c266b474673a5e
+  # hash: c40e6a6f228276d1
   - name: verify-password
     use_case: makeVerifyPasswordUseCase
     preconditions: 

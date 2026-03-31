@@ -9,7 +9,7 @@ The prover answers: "Given the capabilities declared across all modules, can a d
 
 Three concepts underpin the system:
 
-1. **Capability annotations** — every use case file exports a `capability` constant that declares what must already be true (preconditions) and what becomes true (effects) after the use case succeeds.
+1. **Capability annotations** — every use case file has a co-located `*UseCase.capability.ts` sidecar that exports a `capability` constant declaring what must already be true (preconditions) and what becomes true (effects) after the use case succeeds. The use case file itself has zero prover imports.
 2. **Manifests** — `capabilities.yml` files auto-generated from annotations, one per module. Never edit manually.
 3. **Scenarios** — YAML files in `system/scenarios/` describing a desired cross-module workflow (initial state + desired outcome). These you write by hand.
 
@@ -159,14 +159,17 @@ The engine will attempt topological reordering of the proof chain to satisfy ord
 
 ## Adding Capability Annotations to Use Cases
 
-Every file matching `packages/@core/*/application/*UseCase.ts` or `modules/*/application/*UseCase.ts` **must** export a `capability` constant. The generator errors out if any use case file is missing this export.
+Capability annotations live in **sidecar files** — `*UseCase.capability.ts` — co-located with the use case file. The use case file itself has zero prover imports. The generator scans `.capability.ts` files, not the use case files directly.
+
+Every file matching `packages/@core/*/application/*UseCase.ts` or `modules/*/application/*UseCase.ts` **must** have a corresponding `*UseCase.capability.ts` sidecar. The generator errors out if any use case file is missing its sidecar.
 
 ### Standard single annotation
 
 ```typescript
+// In evaluateAccessUseCase.capability.ts (sidecar file — not in the use case file)
 import { defineCapability } from '@/packages/shared/lib/capability';
-import { CAPABILITIES } from '@/packages/shared/lib/capabilities';
-import { EFFECTS } from '@/packages/shared/lib/effects';
+import { CAPABILITIES } from '@/packages/shared/prover/capabilities';
+import { EFFECTS } from '@/packages/shared/prover/effects';
 
 export const capability = defineCapability({
   name: CAPABILITIES.iam.evaluateAccess,
@@ -181,10 +184,16 @@ export const capability = defineCapability({
 - `preconditions` — effect tokens from `EFFECTS` that must be in state before this capability can fire. Use `[]` if none required.
 - `effects` — effect tokens added to state when this capability succeeds. At least one required.
 
+The use case file (`evaluateAccessUseCase.ts`) imports nothing from `@/packages/shared/prover/` or `@/packages/shared/lib/capability`. All prover vocabulary is confined to the sidecar.
+
 ### With context (for where-clause matching)
 
 ```typescript
-import { CONTEXTS } from '@/packages/shared/lib/contexts';
+// In createApiKeyUseCase.capability.ts (sidecar file)
+import { defineCapability } from '@/packages/shared/lib/capability';
+import { CAPABILITIES } from '@/packages/shared/prover/capabilities';
+import { EFFECTS } from '@/packages/shared/prover/effects';
+import { CONTEXTS } from '@/packages/shared/prover/contexts';
 
 export const capability = defineCapability({
   name: CAPABILITIES.auth.createApiKey,
@@ -202,6 +211,10 @@ Context allows scenarios to use where-clauses to select a specific variant of a 
 Use cases that are pure reads with no state change should be marked `query: true`. The generator will skip them — they do not appear in `capabilities.yml`.
 
 ```typescript
+// In getPrincipalUseCase.capability.ts (sidecar file)
+import { defineCapability } from '@/packages/shared/lib/capability';
+import { CAPABILITIES } from '@/packages/shared/prover/capabilities';
+
 export const capability = defineCapability({
   name: CAPABILITIES.identity.getPrincipal,
   useCase: 'makeGetPrincipalUseCase',
@@ -213,9 +226,10 @@ export const capability = defineCapability({
 
 ### Multiple capabilities from one file (rare)
 
-If a single use case file genuinely produces more than one capability, export an array:
+If a single use case file genuinely produces more than one capability, export an array from the sidecar:
 
 ```typescript
+// In someUseCase.capability.ts (sidecar file)
 export const capabilities = [
   defineCapability({ name: '...', useCase: '...', preconditions: [], effects: [...] }),
   defineCapability({ name: '...', useCase: '...', preconditions: [], effects: [...] }),
@@ -242,7 +256,7 @@ Examples:
 
 ### Registering a new effect token
 
-1. Open `/Users/mario/code/Labs/nucleus/packages/shared/lib/effects.ts`
+1. Open `/Users/mario/code/Labs/nucleus/packages/shared/prover/effects.ts`
 2. Add the token under the appropriate domain and entity. If the domain or entity does not exist, add it:
 
 ```typescript
@@ -261,7 +275,7 @@ export const EFFECTS = {
 
 ### Registering a new capability name
 
-Open `/Users/mario/code/Labs/nucleus/packages/shared/lib/capabilities.ts` and add under the appropriate module:
+Open `/Users/mario/code/Labs/nucleus/packages/shared/prover/capabilities.ts` and add under the appropriate module:
 
 ```typescript
 export const CAPABILITIES = {
@@ -275,7 +289,7 @@ export const CAPABILITIES = {
 
 ### Registering a new context constant
 
-Open `/Users/mario/code/Labs/nucleus/packages/shared/lib/contexts.ts` and add a new entry:
+Open `/Users/mario/code/Labs/nucleus/packages/shared/prover/contexts.ts` and add a new entry:
 
 ```typescript
 export const CONTEXTS = {
@@ -295,21 +309,22 @@ export const CONTEXTS = {
 The standard cycle when adding or modifying use cases:
 
 ```
-1. Add/update capability annotation in the use case file
-2. Register any new EFFECTS, CAPABILITIES, or CONTEXTS tokens in shared/lib/
+1. Create/update the sidecar file: {verb}{Entity}UseCase.capability.ts
+2. Register any new EFFECTS, CAPABILITIES, or CONTEXTS tokens in shared/prover/
 3. npm run scenarios:generate     ← writes capabilities.yml
 4. npm run scenarios:check        ← verify all scenarios still pass
 ```
 
 The generator:
 - Discovers all `*UseCase.ts` files in `packages/@core/*/application/` and `modules/*/application/`
-- Dynamically imports each file and reads the `capability` or `capabilities` export
+- For each discovered use case, reads the co-located `*UseCase.capability.ts` sidecar file
+- Dynamically imports each sidecar and reads its `capability` or `capabilities` export
 - Skips capabilities with `query: true`
 - Sorts capabilities alphabetically within each module
 - Writes `capabilities.yml` to the module root (e.g., `packages/@core/iam/capabilities.yml`)
 - Emits drift warnings to stderr if a use case's code hash changed since last generation (the annotation may need updating)
 
-**The generator errors out** if any use case file is missing the export. Fix all missing annotations before the generate command will succeed.
+**The generator errors out** if any use case file is missing its sidecar. Fix all missing sidecars before the generate command will succeed.
 
 ---
 
@@ -322,9 +337,9 @@ The generator:
 | Scenario runner (executes against Postgres) | `packages/prover/run.ts` |
 | Manifest/scenario generator | `packages/prover/generate.ts` |
 | Type definitions | `packages/prover/types.ts` |
-| Effect token constants | `packages/shared/lib/effects.ts` |
-| Capability name constants | `packages/shared/lib/capabilities.ts` |
-| Context constants | `packages/shared/lib/contexts.ts` |
+| Effect token constants | `packages/shared/prover/effects.ts` |
+| Capability name constants | `packages/shared/prover/capabilities.ts` |
+| Context constants | `packages/shared/prover/contexts.ts` |
 | defineCapability helper | `packages/shared/lib/capability.ts` |
 | Scenarios directory | `system/scenarios/` |
 | Core module manifests | `packages/@core/*/capabilities.yml` |
@@ -362,14 +377,14 @@ WARNING: create-api-key (auth) — use case code changed since last generation. 
 
 The use case file's code changed since the last `capabilities.yml` was written. Review the annotation to confirm preconditions and effects still accurately reflect what the use case does. Then re-run `scenarios:generate` to clear the warning.
 
-### Generator fails: missing export
+### Generator fails: missing sidecar
 
 ```
-ERROR: The following use case files are missing a `capability` or `capabilities` export:
-  packages/@core/auth/application/someNewUseCase.ts: missing 'capability' or 'capabilities' export
+ERROR: The following use case files are missing a capability sidecar:
+  packages/@core/auth/application/someNewUseCase.ts: missing sidecar 'someNewUseCase.capability.ts'
 ```
 
-Every `*UseCase.ts` file must export a `capability` constant. Add the annotation (use `query: true` if it is a pure read with no state change).
+Every `*UseCase.ts` file must have a co-located `*UseCase.capability.ts` sidecar that exports a `capability` constant. Create the sidecar file (use `query: true` if it is a pure read with no state change).
 
 ### Ordering conflict
 

@@ -18,9 +18,6 @@ import { createPolicy, Policy, PolicyScope } from '../domain/policy';
 import { createAction } from '../domain/action';
 import { IPolicyRepository } from '../domain/policyRepository';
 import { AccessError } from './accessError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type CreatePolicyInput = {
   name: string;
@@ -104,14 +101,3 @@ export const makeCreatePolicyUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.createPolicy,
-  useCase: 'makeCreatePolicyUseCase',
-  preconditions: [],
-  effects: [EFFECTS.iam.policy.exists],
-});

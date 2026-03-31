@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version: 2
+# Version: 3
 # =============================================================================
 # Architecture Guard - PreToolUse Hook
 # =============================================================================
@@ -21,9 +21,9 @@
 #
 # Rules:
 #   1. Component Purity:        _components/ = pure JSX, NO hooks/state
-#   2. Prisma Boundary:         prisma ONLY in infrastructure/repositories/
-#   3. Action Boundary:         actions.ts can ONLY call useCases
-#   4. UseCase Boundary:        useCases use repositories for external access
+#   2. ORM / Database Boundary: ORM, db clients, schema ONLY in infrastructure/repositories/
+#   3. Action/App Boundary:     app/ files use ONLY useCases, types, session, core
+#   4. UseCase Boundary:        useCases: NO orm, NO db, NO schema, NO http
 #   5. Frontend Boundary:       components/containers call ONLY server actions
 #   6. Service Class Detection: no class XService/Controller/Manager/Handler/Provider
 #   7. One UseCase Per File:    application/*UseCase* files contain exactly one make*UseCase
@@ -162,6 +162,9 @@ if [[ "$FILE_PATH" == */domain/* ]] && [[ "$FILE_PATH" != *Repository* ]]; then 
 if [[ "$FILE_PATH" == */page.tsx ]]; then IS_PAGE=true; fi
 if [[ "$FILE_PATH" == */error.tsx ]]; then IS_ERROR_BOUNDARY=true; fi
 
+IS_API_ROUTE=false
+if [[ "$FILE_PATH" == */route.ts ]] || [[ "$FILE_PATH" == */route.tsx ]]; then IS_API_ROUTE=true; fi
+
 
 # =============================================================================
 # RULE 1: Component Purity
@@ -182,9 +185,10 @@ if [ "$IS_COMPONENT" = true ]; then
 fi
 
 # =============================================================================
-# RULE 2: Prisma ONLY in Repositories
-# Prisma client can ONLY be imported and used in repository files inside
-# infrastructure/repositories/. Nowhere else. Ever.
+# RULE 2: ORM / Database Boundary
+# ORM libraries (Prisma, Drizzle), database clients, query builders,
+# and schema table definitions can ONLY be imported and used in repository
+# files inside infrastructure/repositories/. Nowhere else. Ever.
 #
 # NOTE: Pattern strings are assembled from fragments at runtime so that
 # this hook file itself does not contain the literal banned strings and
@@ -192,6 +196,7 @@ fi
 # =============================================================================
 
 if [ "$IS_REPOSITORY" = false ]; then
+  # Prisma ORM
   PRISMA_PKG="@prisma/client"
   PRISMA_NEW="new Prisma"
   PRISMA_CLASS="PrismaClient"
@@ -200,12 +205,31 @@ if [ "$IS_REPOSITORY" = false ]; then
   PRISMA_CALL='prisma\.[a-zA-Z]+\.'
   PRISMA_PATTERN="${PRISMA_PKG}|${PRISMA_IMPORT}|${PRISMA_IMPORT2}|${PRISMA_CALL}|${PRISMA_NEW}Client|${PRISMA_CLASS}"
 
-  if content_has "$PRISMA_PATTERN"; then
-    FOUND=$(content_matches "$PRISMA_PATTERN")
+  # Drizzle ORM
+  DRIZZLE_PKG="drizzle"
+  DRIZZLE_DASH="${DRIZZLE_PKG}-orm"
+  DRIZZLE_CALL="db\.(select|insert|update|delete|query)"
+  # Database client handle
+  DB_HANDLE_1="@/lib/db"
+  DB_HANDLE_2="@/database"
+  DB_HANDLE_3="@/config/database"
+  # Schema table imports — catch paths ending in /schema or containing /schema/
+  SCHEMA_IMPORT="from[[:space:]]+['\"].*/(schema|tables)['\"]|from[[:space:]]+['\"].*/schema/|from[[:space:]]+['\"]\\..*schema['\"]"
+
+  # Use case files may import db handles for pre-wiring (composition).
+  # The ORM, schema, and query-builder checks still catch actual misuse.
+  if [ "$IS_USECASE" = true ]; then
+    ORM_PATTERN="${PRISMA_PATTERN}|${DRIZZLE_DASH}|${DRIZZLE_CALL}|${SCHEMA_IMPORT}"
+  else
+    ORM_PATTERN="${PRISMA_PATTERN}|${DRIZZLE_DASH}|${DRIZZLE_CALL}|${DB_HANDLE_1}|${DB_HANDLE_2}|${DB_HANDLE_3}|${SCHEMA_IMPORT}"
+  fi
+
+  if content_has "$ORM_PATTERN"; then
+    FOUND=$(content_matches "$ORM_PATTERN")
     deny \
-      "PRISMA BOUNDARY" \
-      "Prisma can ONLY be used inside Repository files (infrastructure/repositories/). Found prisma usage in a non-repository file.\n${FOUND}" \
-      "Create or use a Repository method in modules/<module>/infrastructure/repositories/. The data flow is: action → useCase → repository → prisma. No shortcuts."
+      "ORM / DATABASE BOUNDARY" \
+      "ORM libraries, database clients, query builders, and schema tables can ONLY be used inside Repository files (infrastructure/repositories/). Found direct database access in a non-repository file.\n${FOUND}" \
+      "Create or use a Repository method in modules/<module>/infrastructure/repositories/. The data flow is: action → useCase → repository → database. No shortcuts. No direct ORM imports. No direct db access."
   fi
 fi
 
@@ -229,6 +253,28 @@ IS_APP_FILE=false
 if [[ "$FILE_PATH" == */app/* ]] || [[ "$FILE_PATH" == app/* ]]; then IS_APP_FILE=true; fi
 
 if [ "$IS_ACTION" = true ] || [ "$IS_APP_FILE" = true ]; then
+  # No ORM library or database client imports
+  # (Assembled from fragments — see Rule 2 note)
+  APP_ORM_FRAG1="drizzle"
+  APP_ORM_PATTERN="${APP_ORM_FRAG1}-orm|@/lib/db|@/database|db\.(select|insert|update|delete|query)"
+  if content_has "$APP_ORM_PATTERN"; then
+    FOUND=$(content_matches "$APP_ORM_PATTERN")
+    deny \
+      "APP LAYER — NO DIRECT DATABASE ACCESS" \
+      "Files in app/ must NOT import ORM libraries, database clients, or use query builders directly.\n${FOUND}" \
+      "All database access goes through Use Cases. Import a pre-wired use case from '@/modules/{module}/application/{verb}{Entity}UseCase'. The use case calls a repository internally."
+  fi
+
+  # No schema table imports
+  APP_SCHEMA_PATTERN="from[[:space:]]+['\"].*/(schema|tables)['\"]|from[[:space:]]+['\"]\\..*schema['\"]|from[[:space:]]+['\"].*/schema/"
+  if content_has "$APP_SCHEMA_PATTERN"; then
+    FOUND=$(content_matches "$APP_SCHEMA_PATTERN")
+    deny \
+      "APP LAYER — NO SCHEMA IMPORTS" \
+      "Files in app/ must NOT import database schema or table definitions.\n${FOUND}" \
+      "Schema tables are infrastructure-private. Use a pre-wired use case for data access. Types: import from '@/modules/{module}/domain/types'."
+  fi
+
   # No infrastructure imports EXCEPT infrastructure/session (which is a public API surface)
   if content_has "from.*infrastructure"; then
     INFRA_FOUND=$(printf '%s' "$CONTENT" | grep -nE "from.*infrastructure" 2>/dev/null | grep -vE "infrastructure/session" | head -5 || true)
@@ -271,13 +317,58 @@ if [ "$IS_ACTION" = true ] || [ "$IS_APP_FILE" = true ]; then
 fi
 
 # =============================================================================
-# RULE 4: UseCases → Repositories ONLY for external access
+# RULE 4: UseCase Layer Boundary
 # UseCases contain business logic and orchestrate repositories.
-# They must NOT directly call external services (fetch, axios, etc).
+# They must NOT:
+#   - Import ORM libraries (drizzle-orm, @prisma/client)
+#   - Import database clients (@/lib/db)
+#   - Import schema/table definitions
+#   - Use query builders (db.select, db.insert, etc.)
+#   - Make direct HTTP/API calls (fetch, axios)
+#
+# UseCases receive repository INTERFACES via dependency injection.
+# The pre-wired section at the bottom of use case files may import
+# concrete repository factories — but NEVER ORM utilities or db clients.
 # =============================================================================
 
 if [ "$IS_USECASE" = true ]; then
-  # No direct HTTP/fetch/axios calls
+  # No ORM library imports
+  # (Assembled from fragments — see Rule 2 note)
+  UC_ORM_FRAG1="drizzle"
+  UC_ORM_PATTERN="${UC_ORM_FRAG1}-orm|@pris""ma/client|Pris""maClient"
+  if content_has "$UC_ORM_PATTERN"; then
+    FOUND=$(content_matches "$UC_ORM_PATTERN")
+    deny \
+      "USE CASE LAYER — NO ORM IMPORTS" \
+      "Use cases must NOT import ORM libraries. ORM access belongs exclusively in repositories.\n${FOUND}" \
+      "Remove the ORM import. If this use case needs data, call a Repository method. The repository handles all ORM/database interaction."
+  fi
+
+  # Database client imports (@/lib/db) are ALLOWED in use case files for
+  # pre-wiring (passing db to repository factories). The query-builder check
+  # below catches any direct misuse. ORM + schema checks prevent query writing.
+
+  # No schema/table imports
+  UC_SCHEMA_PATTERN="from[[:space:]]+['\"].*/(schema|tables)['\"]|from[[:space:]]+['\"].*/schema/"
+  if content_has "$UC_SCHEMA_PATTERN"; then
+    FOUND=$(content_matches "$UC_SCHEMA_PATTERN")
+    deny \
+      "USE CASE LAYER — NO SCHEMA IMPORTS" \
+      "Use cases must NOT import database schema or table definitions.\n${FOUND}" \
+      "Schema tables are infrastructure-private. Define the data shape you need as a type in domain/types, and let the repository map between schema and domain types."
+  fi
+
+  # No query builder calls
+  UC_QUERY_PATTERN="db\.(select|insert|update|delete|query)\s*\("
+  if content_has "$UC_QUERY_PATTERN"; then
+    FOUND=$(content_matches "$UC_QUERY_PATTERN")
+    deny \
+      "USE CASE LAYER — NO DIRECT QUERIES" \
+      "Use cases must NOT execute database queries directly.\n${FOUND}" \
+      "Move this query into a Repository method. The use case calls repo.findX() — never db.select()."
+  fi
+
+  # No direct HTTP/fetch/axios calls (existing check, preserved)
   if content_has "(^|[^a-zA-Z])fetch\s*\(|from ['\"]axios['\"]|axios\.(get|post|put|delete|patch|request)"; then
     FOUND=$(content_matches "fetch\s*\(|axios")
     deny \

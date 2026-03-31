@@ -17,9 +17,6 @@ import { Result } from '../../../shared/lib/result';
 import { validateStatusTransition } from '../domain/principal';
 import { IPrincipalRepository } from '../domain/principalRepository';
 import { IdentityError } from './identityError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -89,14 +86,3 @@ export const makeDeactivatePrincipalUseCase = (repo: IPrincipalRepository) => {
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.identity.deactivatePrincipal,
-  useCase: 'makeDeactivatePrincipalUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [EFFECTS.identity.principal.deactivated, EFFECTS.identity.principal.deleted],
-});

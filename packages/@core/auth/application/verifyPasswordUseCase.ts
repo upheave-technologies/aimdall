@@ -13,10 +13,6 @@
 import { Result } from '../../../shared/lib/result';
 import { ICredentialRepository } from '../domain/credentialRepository';
 import { AuthError } from './authError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
-import { CONTEXTS } from '../../../shared/lib/contexts';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -89,15 +85,3 @@ export const makeVerifyPasswordUseCase = (
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.auth.verifyPassword,
-  useCase: 'makeVerifyPasswordUseCase',
-  preconditions: [EFFECTS.auth.credential.exists],
-  effects: [EFFECTS.auth.credential.verified],
-  context: CONTEXTS.credentialType.password,
-});

@@ -16,9 +16,6 @@ import { Result } from '../../../shared/lib/result';
 import { CredentialType, validatePrincipalId } from '../domain/credential';
 import { ICredentialRepository } from '../domain/credentialRepository';
 import { AuthError } from './authError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -64,15 +61,3 @@ export const makeHasActiveCredentialUseCase = (repo: ICredentialRepository) => {
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.auth.hasActiveCredential,
-  useCase: 'makeHasActiveCredentialUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [],
-  query: true,
-});

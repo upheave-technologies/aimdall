@@ -3,7 +3,7 @@
 
 module: identity
 capabilities:
-  # hash: b0c291e9e8ff1439
+  # hash: b4348edd8449ecab
   - name: create-principal
     use_case: makeCreatePrincipalUseCase
     preconditions: []
@@ -11,7 +11,7 @@ capabilities:
       - "identity:principal:exists"
       - "identity:principal:active"
 
-  # hash: 51da97188ec2748b
+  # hash: 318f923ca0e60741
   - name: deactivate-principal
     use_case: makeDeactivatePrincipalUseCase
     preconditions: 
@@ -20,7 +20,7 @@ capabilities:
       - "identity:principal:deactivated"
       - "identity:principal:deleted"
 
-  # hash: b61c37dec500233b
+  # hash: dfa9d2705bdcf60d
   - name: reactivate-principal
     use_case: makeReactivatePrincipalUseCase
     preconditions: 
@@ -29,7 +29,7 @@ capabilities:
     effects: 
       - "identity:principal:active"
 
-  # hash: 7d1b477bf308165e
+  # hash: e8d8aa81baf6e0fd
   - name: suspend-principal
     use_case: makeSuspendPrincipalUseCase
     preconditions: 
@@ -38,7 +38,7 @@ capabilities:
     effects: 
       - "identity:principal:suspended"
 
-  # hash: 39b3973222247825
+  # hash: 1ca384513b922f3a
   - name: update-principal
     use_case: makeUpdatePrincipalUseCase
     preconditions: 

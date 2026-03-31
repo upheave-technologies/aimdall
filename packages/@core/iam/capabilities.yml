@@ -3,14 +3,14 @@
 
 module: iam
 capabilities:
-  # hash: afdf7b3e19758a48
+  # hash: 319ffdb595afc456
   - name: create-policy
     use_case: makeCreatePolicyUseCase
     preconditions: []
     effects: 
       - "iam:policy:exists"
 
-  # hash: 204f74716e72e41b
+  # hash: 12343e5ba39c60ff
   - name: evaluate-access
     use_case: makeEvaluateAccessUseCase
     preconditions: 
@@ -18,7 +18,7 @@ capabilities:
     effects: 
       - "iam:access:evaluated"
 
-  # hash: c05848fa764c1e83
+  # hash: b08383b872e4a92e
   - name: grant-entitlement
     use_case: makeGrantEntitlementUseCase
     preconditions: 
@@ -27,7 +27,7 @@ capabilities:
     effects: 
       - "iam:entitlement:granted"
 
-  # hash: d6259763815339f2
+  # hash: 466a3611be8f0035
   - name: resolve-principal-permissions
     use_case: makeResolvePrincipalPermissionsUseCase
     preconditions: 
@@ -36,7 +36,7 @@ capabilities:
     effects: 
       - "iam:permissions:resolved"
 
-  # hash: 022998dc6183e919
+  # hash: 00cb5d6a16cc73a8
   - name: revoke-entitlement
     use_case: makeRevokeEntitlementUseCase
     preconditions: 
@@ -44,7 +44,7 @@ capabilities:
     effects: 
       - "iam:entitlement:revoked"
 
-  # hash: f132b7f45fb87675
+  # hash: 78465e2630bab8d6
   - name: update-policy-actions
     use_case: makeUpdatePolicyActionsUseCase
     preconditions: 

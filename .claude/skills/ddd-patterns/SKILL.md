@@ -205,23 +205,85 @@ import { getSession } from '@/modules/campaigns/infrastructure/session';
 import type { Principal } from '@/packages/@core/identity';
 ```
 
+## ORM / Database Boundary
+
+ORM libraries, database clients, query builders, and schema table imports are ONLY allowed in repository files inside `infrastructure/repositories/`. This is the single most important boundary in the architecture.
+
+**Only repositories touch the database:**
+```typescript
+// ✅ CORRECT — ORM imports in a repository
+// infrastructure/repositories/DrizzleCampaignRepository.ts
+import { eq, and, isNull } from 'drizzle-orm';
+import { campaigns } from '../../schema/campaigns';
+import { db } from '../database';
+
+export const makeCampaignRepository = (db: DatabaseType): ICampaignRepository => ({
+  // ... repository methods with ORM queries
+});
+```
+
+**Use cases never write database queries:**
+```typescript
+// ❌ VIOLATION — ORM utilities + schema in a use case = writing queries
+// application/listUsersUseCase.ts
+import { asc, isNull } from 'drizzle-orm';       // FORBIDDEN — ORM utility
+import { users } from '../../schema/users';        // FORBIDDEN — schema table
+const data = await db.select().from(users);        // FORBIDDEN — query builder
+
+// ✅ CORRECT — use case receives a repository interface
+// application/listUsersUseCase.ts
+import type { IUserRepository } from '../domain/userRepository';
+
+export const makeListUsersUseCase = (userRepo: IUserRepository) => {
+  return async () => userRepo.findAll();
+};
+
+// ✅ ALSO CORRECT — pre-wired section imports db handle for composition
+import { db } from '@/lib/db';                     // ALLOWED — composition wiring
+import { makeUserRepository } from '../infrastructure/repositories/DrizzleUserRepository';
+
+const userRepo = makeUserRepository(db);           // db passed to factory, never used directly
+export const listUsers = makeListUsersUseCase(userRepo);
+```
+
+**app/ files never touch the database:**
+```typescript
+// ❌ VIOLATION — database access in page.tsx
+import { db } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+const data = await db.select().from(users);
+
+// ✅ CORRECT — call pre-wired use case
+import { listUsers } from '@/modules/users/application/listUsersUseCase';
+const result = await listUsers();
+```
+
 ## API route (thin adapter)
 
-Routes wire dependencies and translate HTTP. No business logic:
+Routes are thin HTTP adapters. They call pre-wired use cases — never wire repositories directly:
 
 ```typescript
 // app/api/campaigns/route.ts
-import { makeCreateCampaignUseCase } from '.../application/createCampaignUseCase';
-import { PostgresCampaignRepository } from '.../infrastructure/PostgresCampaignRepository';
+import { NextRequest, NextResponse } from 'next/server'
+import { createCampaign } from '@/modules/campaigns/application/createCampaignUseCase'
+import { getSession } from '@/modules/campaigns/infrastructure/session'
 
 export async function POST(request: NextRequest) {
-  const useCase = makeCreateCampaignUseCase(PostgresCampaignRepository);
-  const body = await request.json();
-  const result = await useCase({ brandId: body.brandId, name: body.name, budget: body.budget });
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const result = await createCampaign({
+    brandId: body.brandId,
+    name: body.name,
+    budget: body.budget,
+  })
 
   if (result.success) {
-    return NextResponse.json(result.value, { status: 201 });
+    return NextResponse.json(result.value, { status: 201 })
   }
-  return NextResponse.json({ error: result.error.message }, { status: 400 });
+  return NextResponse.json({ error: result.error.message }, { status: 400 })
 }
 ```

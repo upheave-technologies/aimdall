@@ -1,23 +1,24 @@
 {
   "version": 1,
-  "initializedAt": "2026-03-20T11:06:11.278Z",
+  "initializedAt": "2026-03-31T12:17:56.419Z",
   "registrySource": "upheave-technologies/nucleus",
+  "preset": "standard",
   "blocks": {
     "archie": {
       "name": "archie",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:11.761Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:56.916Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/archie.md": "e0db6cf886496dba7847f0c18a470ceab395c8b95befbf9e07acb43103987413"
+        ".claude/agents/archie.md": "853882df57fa7f528c484fc134b63e49c5f2e652170bae5a949471adb982980d"
       },
-      "compositeHash": "38d07344263fa87f0013f676b7ad3f59bbdf933c91e0f36cfcc80cb1f5935b51"
+      "compositeHash": "0824df92e1a16cdf5d941ef8ef9314c75a25f153ec922cc7d4f388823344f759"
     },
     "ddd-architecture": {
       "name": "ddd-architecture",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:11.968Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:57.222Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/ddd-architecture.md": "98507fc5feccf128e9c00de7a6ab12cd4fd3238e5100614b9f0cc6732ccbc731"
       },
@@ -26,78 +27,78 @@
     "architecture-guard": {
       "name": "architecture-guard",
       "category": "hook",
-      "installedAt": "2026-03-20T11:06:12.276Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:57.488Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/hooks/architecture-guard.sh": "71c0daba2d8a991f361b9dcc1982c228d48d43c30c4bf10f3066c04d3a4d303f"
+        ".claude/hooks/architecture-guard.sh": "933a2cfebda21616bf640ce2102f0e821e4c192e40a3e38f8a5694cd1270ea57"
       },
-      "compositeHash": "66e90e13211a7c32808959e20fafe4622a62e70ad55ee8faed4373d7b29e8fce"
+      "compositeHash": "48b9ee2b5449f236517088a3e4ce139e3aab285b2b5ea5610555e14570a3c982"
     },
     "donnie": {
       "name": "donnie",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:12.507Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:57.859Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/donnie.md": "006c6b61d4de8cb0280383c31bf45c7bfe6021bc3a24790baf790da01d7a63d3"
+        ".claude/agents/donnie.md": "8b93ff23aaf4c97cd0854d2e89833e3d8bf6fe570ac0951231869c39a0ce2b64"
       },
-      "compositeHash": "a21de2709107863eddca23a60d44345583e726648b0cce9c33182c0ce13a7813"
+      "compositeHash": "a15c31bbdfe072e852df01b93feac35f7d48571946e8a1592dae3a97e0a621e3"
     },
     "nexus": {
       "name": "nexus",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:12.828Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:58.097Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/nexus.md": "1c1b9e952bd8bbf8bb66f5cb5e107909800ce7e063ed1595331a4b9320dabccd"
+        ".claude/agents/nexus.md": "cde8b307b70b27c744908931cde1f3a989ff995b47f2f12de4d2502bf75492e2"
       },
-      "compositeHash": "b602d8f6da97466a53b4b38ec68224bc99695e428c6a2e5f4a07ec1601159281"
+      "compositeHash": "18545aa46c60b906d6676a1a73374afc35d2591374b3483d253527e871a05d30"
     },
     "prince": {
       "name": "prince",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:13.053Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:58.568Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/prince.md": "474cf1c745cbfabaa213d8629cb2daafd8a219adb969752264081a2f312c1451"
+        ".claude/agents/prince.md": "21ed5d71735d4f76e150fc31d3d701c74b47eea8a99827d951d540e33a00497a"
       },
-      "compositeHash": "aec54888a84c9d24c2e859026c8108d47bf5f0fe7c8a0da1ba4ac8035776dada"
+      "compositeHash": "ab763b4c98ee24c49ea046dcc2137464f970f59f5f48efcfa709dbc0d0621590"
     },
     "rufus": {
       "name": "rufus",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:13.366Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:58.850Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/rufus.md": "d5655c8ac50abe6fd37cb9d7e9e81952a7bf5b078d49e66b85da52f22ccfb182"
+        ".claude/agents/rufus.md": "cdfd52343b2713ef9438f0e247331ec6c8c3a0d2cdcc6bd42ca49417e2a606ba"
       },
-      "compositeHash": "2fedd6d72c6ce9c8114575ba0e5725d26d5284b93ec46c81d052faed6b3df265"
+      "compositeHash": "1058a8c81c4ea0ba1a9c38f80d6c74198bac5947a871798dc24cb2cbbdcaf7c9"
     },
     "plancton": {
       "name": "plancton",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:13.590Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:59.105Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/plancton.md": "259b2a6e1ca4c410530b7ee283a343477e763763aff9aab8ce36cec978f41c1b"
+        ".claude/agents/plancton.md": "bd7837d4e48537068f8012fd5bd325693b5dd2af49e6744c05ffd6528c82dff2"
       },
-      "compositeHash": "5b9065d660e58b0e731b49b8bc977bb5bcc570704a9a1b99a8bb346f110bd997"
+      "compositeHash": "3155ffc9588a42e93a1b5f00ddb82c14d508b64c028fdb3e7b60e3a85e57b3f6"
     },
     "tesseract": {
       "name": "tesseract",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:13.913Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:59.439Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/tesseract.md": "0f50240b003c59fa5651db80724527edc94723f6f06b5639ff7d43079a0ceff4"
+        ".claude/agents/tesseract.md": "9e2955acb388f468f1a2ccf9ee9a87f3d2280e0176dd2969e1d12e3add05d4d9"
       },
-      "compositeHash": "336e937e30b1b2a5b25dcef7fefb7123dba005ba1c3b7e8a59b9e81a52e0bdb5"
+      "compositeHash": "cade0e6cabd1fd5e206808198996ecef5592104002b83412b786c3f6d5913820"
     },
     "frankie-scope-guard": {
       "name": "frankie-scope-guard",
       "category": "hook",
-      "installedAt": "2026-03-20T11:06:14.157Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:59.740Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/hooks/frankie-scope-guard.sh": "0160352a93d929eac57fb74ccb60bb835fda55d17b0b3aabcdf93795c8ee03c8"
       },
@@ -106,8 +107,8 @@
     "frontend-guideline": {
       "name": "frontend-guideline",
       "category": "skill",
-      "installedAt": "2026-03-20T11:06:14.416Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:17:59.989Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/skills/frontend-guideline/SKILL.sh": "e4f7f22f1372366874c1f4da15e4df3371ce6466648cd3c3df7d72ba75608a63"
       },
@@ -116,8 +117,8 @@
     "react-components": {
       "name": "react-components",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:14.629Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:00.210Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/react-components.md": "88d9a3eac3484f7e4c37a803eec340201ac152a6108cb67c638bb10dd9bbe72a"
       },
@@ -126,8 +127,8 @@
     "server-first-react": {
       "name": "server-first-react",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:14.871Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:00.603Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/server-first-react.md": "90b782fcbd0d5b246595e643efba6afd930008f3f07363f8494346ec33b843a1"
       },
@@ -136,8 +137,8 @@
     "project-structure": {
       "name": "project-structure",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:15.100Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:00.862Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/project-structure.md": "3dced86f058fa9076fe425e4ec27ce1cec28957ac111fbf225aeeeb8f9f52290"
       },
@@ -146,8 +147,8 @@
     "page-architecture": {
       "name": "page-architecture",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:15.333Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:01.102Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/page-architecture.md": "0a3de063190cbccf3a3cae71134b0bd4d25ae1d03d43898d2d2a6e9d53f93f84"
       },
@@ -156,38 +157,48 @@
     "frankie": {
       "name": "frankie",
       "category": "agent",
-      "installedAt": "2026-03-20T11:06:15.545Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:01.380Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/agents/frankie.md": "4189dda1068204ecfd430463e3eba1a2f3e1bb7b9bbb58f6d494b535c9820bb2"
+        ".claude/agents/frankie.md": "ed8e5276f91d08991809899bf580179ba003e3cb3aedd39c36173e9b2a86ebda"
       },
-      "compositeHash": "d1bd7e819537cfdcfad70b91d9b9b02973e1b919c5ad45239e26ca9b7b2a4079"
+      "compositeHash": "2617440a7bf94a1605d39a0b3ae62c886c430a275a8ac2d0153ef5d17689162a"
     },
     "ddd-patterns": {
       "name": "ddd-patterns",
       "category": "skill",
-      "installedAt": "2026-03-20T11:06:15.773Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:01.742Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/skills/ddd-patterns/SKILL.md": "baa28855742899424eb85b4b2ad607c43db391395985c2b7f92c58fe459e0f99"
+        ".claude/skills/ddd-patterns/SKILL.md": "58c24d0e1648fde53971c14593b126ce953a3984a7e8a3e47070a9d0637aa206"
       },
-      "compositeHash": "2a007d06f95518ca9fdf5ad854b7f7ce0428bc9fed50db97316d9b30bd570bd5"
+      "compositeHash": "26a627a9fb821c1ee0a86cd78a1fa8be407d5db1492be5caf1af1da792dad981"
     },
     "prover": {
       "name": "prover",
       "category": "skill",
-      "installedAt": "2026-03-20T11:06:16.067Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:01.965Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        ".claude/skills/prover/SKILL.md": "6943971f13c8ae4c5831307ace8eb829e845b8d3aa781dbdaa179fb47a77fefc"
+        ".claude/skills/prover/SKILL.md": "d21a5c006a92bf39d8caf08afc657c4c9b413a4887ad001a9f6d6c923d46aa58"
       },
-      "compositeHash": "accf1c956966cd701d7520c7261415a67b528c97d09c265593b2cecb1f71331e"
+      "compositeHash": "f8c801be8532c502af9f8652813c5278143e629c23d8e44b4a63db9b15a6c332"
+    },
+    "changelog": {
+      "name": "changelog",
+      "category": "skill",
+      "installedAt": "2026-03-31T12:18:02.205Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
+      "files": {
+        ".claude/skills/changelog/SKILL.md": "9335724fc4d3616a3792b11436d31bf05e1c9826124a254514ca0070b58ceac8"
+      },
+      "compositeHash": "e6e5dc6477477d04fd2e8860ced2c959636db3a886471447d1d741699d027c29"
     },
     "build-check": {
       "name": "build-check",
       "category": "hook",
-      "installedAt": "2026-03-20T11:06:16.274Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:02.515Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/hooks/build-check.sh": "855b87f831b83244462b12bf268f3f830cb46acbc92a84f897854bc7eeedc38c"
       },
@@ -196,8 +207,8 @@
     "nucleus-guard": {
       "name": "nucleus-guard",
       "category": "hook",
-      "installedAt": "2026-03-20T11:06:16.504Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:02.781Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/hooks/nucleus-guard.sh": "67419d26d487b774de5e880c2296778251d0a39f20e6ecb6c3a6ac65570c67d1"
       },
@@ -206,8 +217,8 @@
     "orchestrator-guard": {
       "name": "orchestrator-guard",
       "category": "hook",
-      "installedAt": "2026-03-20T11:06:16.716Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:03.061Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/hooks/orchestrator-guard.sh": "0a6eb7094764e7cfe830946130115b2eeff94e55df21e7e4725fc6b93585b274"
       },
@@ -216,8 +227,8 @@
     "application-layer": {
       "name": "application-layer",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:16.934Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:03.295Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/application-layer.md": "062b51135907e304045c8d7daa5cc17b3b56b0dd0fa0c8800729165d45d63b34"
       },
@@ -226,8 +237,8 @@
     "domain-layer": {
       "name": "domain-layer",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:17.155Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:03.523Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/domain-layer.md": "23d25ee8ec08156d5f1d1d1fbf18a699e22ee138cdbacff1b7ec3033aec52cd7"
       },
@@ -236,8 +247,8 @@
     "infrastructure-layer": {
       "name": "infrastructure-layer",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:17.387Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:03.731Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/infrastructure-layer.md": "78bcaf366549df77d8a09f798d0a241f16fc2328d4fa6b49d0c4257622270ae1"
       },
@@ -246,8 +257,8 @@
     "server-actions": {
       "name": "server-actions",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:17.628Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:03.945Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/server-actions.md": "d478a1c3eedc360b9ddb363771ce65e106cc6d47786f9ffe392dc2412acec340"
       },
@@ -256,8 +267,8 @@
     "nucleus-readonly": {
       "name": "nucleus-readonly",
       "category": "rule",
-      "installedAt": "2026-03-20T11:06:17.871Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:04.180Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         ".claude/rules/nucleus-readonly.md": "9ea006ad00adce8e60a3ba08a9113d9c5222b1fe22ae061fe854457a3bad0d9c"
       },
@@ -266,33 +277,30 @@
     "shared": {
       "name": "shared",
       "category": "package",
-      "installedAt": "2026-03-20T11:06:19.524Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:05.592Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
-        "packages/shared/lib/capabilities.ts": "efdd9a874455f8c9b8b5b7b60d90e9aa47e88b0d38c76435cb085a85c7f64b1c",
         "packages/shared/lib/capability.ts": "e8001c7d517ea36aa00e58c2394b9716e1a35be0a81c7a926d8fae47f35a4fb2",
-        "packages/shared/lib/contexts.ts": "07ceb337696d79d7e9de3c2d84ff75caf2f0818e917ac4877081a2d6b1a6ffe3",
-        "packages/shared/lib/effects.ts": "b6a2217f403504dc5182716bda73709c485049fdcc6898d6ea24fd9bde8d534d",
         "packages/shared/lib/result.ts": "6bab5e90bcec47a691a2396d61f54d564756c878271120073382f31fb2dedb2d"
       },
-      "compositeHash": "554c5f713baba9697dbb6df2f88eca200d92097cf856677e3bb627ccbbc9a776"
+      "compositeHash": "f28b7fb96794348832e4ee7dace5b289a4e66fae3382e1fdf53f837f4e703251"
     },
     "identity": {
       "name": "identity",
       "category": "package",
-      "installedAt": "2026-03-20T11:06:25.136Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:12.304Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         "packages/@core/identity/README.md": "3d4ca8d20326b6da5945be49600f6844c65f81d61b6690f724738b9185ff0680",
-        "packages/@core/identity/application/createPrincipalUseCase.ts": "da9f1dc99d42726c13ce7451ee559c15377541da63573afbaccac7d5614d7a2e",
-        "packages/@core/identity/application/deactivatePrincipalUseCase.ts": "8b5a968516c1ec919fe8af2f02ef296363b785722f20c12a5348bb95ce9ce9b7",
-        "packages/@core/identity/application/getPrincipalByEmailUseCase.ts": "cc30d51aabae8489a57a1f2be5f869a9a170934cb00a8ae11df31c19c704e694",
-        "packages/@core/identity/application/getPrincipalUseCase.ts": "dea2c3cba15d5be4493d55371572e578ea3a0605d45412926f40a4e7e00f8d8b",
+        "packages/@core/identity/application/createPrincipalUseCase.ts": "b4348edd8449ecabf65cf4e4a915baf2e24c0e4da2ce0416a24db4e73cd7c28f",
+        "packages/@core/identity/application/deactivatePrincipalUseCase.ts": "318f923ca0e6074151657718c0188eb0425d2a204d7872e1865aff0250c52e76",
+        "packages/@core/identity/application/getPrincipalByEmailUseCase.ts": "38bed9189decbf4c089abd49cef31474289139e9ae0f2a40bb7b86601d03f3a6",
+        "packages/@core/identity/application/getPrincipalUseCase.ts": "408b499751bf3fe0c7349bd81148efa98740cecc8d2401d4342b783bab631c76",
         "packages/@core/identity/application/identityError.ts": "19126c8d908f38d316682a5c779f7cb241a35e1b93359ff19935f3a122ffa47c",
-        "packages/@core/identity/application/reactivatePrincipalUseCase.ts": "866f22be1bd9c1f44c4ab7539c8ccb4f77d997c03f5993929aa157c595036c3a",
-        "packages/@core/identity/application/suspendPrincipalUseCase.ts": "e1c4f46afe3a85cfaff1074eeb6063411213d2862668c46f6c60148b400b1f16",
-        "packages/@core/identity/application/updatePrincipalUseCase.ts": "fba8538bf23bc8487f92eeb480fe29b699f1dec5e48c6efb831d0ecfea79b843",
-        "packages/@core/identity/capabilities.yml": "f7b70b7762ad38bdd046a9b17300007f7b629e9b085cb961295369002dcbf3da",
+        "packages/@core/identity/application/reactivatePrincipalUseCase.ts": "dfa9d2705bdcf60dd13d3ea75b540e2372c18888ac58d28f8060bc5a8bb0b4f1",
+        "packages/@core/identity/application/suspendPrincipalUseCase.ts": "e8d8aa81baf6e0fdc7a52d9600c452d87d19568a1e5d491dd48b697fabe5a134",
+        "packages/@core/identity/application/updatePrincipalUseCase.ts": "1ca384513b922f3a7a1373ec46899f52519c780ff6be2a007da79a2f6ea070ff",
+        "packages/@core/identity/capabilities.yml": "74388e474369b175ee4b04d12ee718da7da51db61fd9e08b3e05267e03592d34",
         "packages/@core/identity/domain/principal.ts": "95eb13ada2c872d283232915a94cca6ec4a666fc2147aabd22723e05546b504e",
         "packages/@core/identity/domain/principalRepository.ts": "0f1a29c243d3f528d24e2f8c0a8b9cd7298bd9a97d345a7e175125a414a6c733",
         "packages/@core/identity/index.ts": "084905bf711b07cda5bbbf62c67176fc9021195e1a78c905e0b0e8d3dadfe94f",
@@ -303,27 +311,27 @@
         "packages/@core/identity/schema/principals.ts": "45c37e86c9a159dca4c4324ec012ca1454722fd08fbc38ce0b4cacd19c058d8e",
         "packages/@core/identity/schema/relations.ts": "04722b9d9aff10f6201ad6b98c3402d0f111148d2d46313be491f9f663dfb4df"
       },
-      "compositeHash": "17a4219e6bc9d7966a161895fb8f3d31940bb3f96e4b6633eadd954891bda35e"
+      "compositeHash": "095b27af6706a2d8adc040ba16d8076a23bc329182f8d9df50f81d0d2e93b3a4"
     },
     "auth": {
       "name": "auth",
       "category": "package",
-      "installedAt": "2026-03-20T11:06:31.991Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:21.140Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         "packages/@core/auth/README.md": "0157c4c3228ea133d381443ac704089d7d11b9c12570702b41dc10c96239b18b",
         "packages/@core/auth/application/authError.ts": "da0f71294c264e43f62f388fbbe1ea35757a484b5f1e130c7d2882f38be1ac88",
-        "packages/@core/auth/application/changePasswordUseCase.ts": "8468038ece3a0aca3578d16dc7ba465e2f3b3acaf0939e83e25565546704e44e",
-        "packages/@core/auth/application/createApiKeyUseCase.ts": "5cb9e96b90b93604f5060ff6c54c53349d5d19d9f40edd7e7de2000a16674445",
-        "packages/@core/auth/application/createPasswordCredentialUseCase.ts": "12c763b1370d89d19081ead082279dc93a7524ebeb60aeee2e380faf30741cf2",
-        "packages/@core/auth/application/hasActiveCredentialUseCase.ts": "bae83e8c9daa00a4d6ca56beb2eb397eab019155cfc7cae6c7fea7152b81a055",
-        "packages/@core/auth/application/linkOAuthProviderUseCase.ts": "9785e4795bd29756813fc1bf1b202c97497ccc2e378ad12854faa75ff674d085",
-        "packages/@core/auth/application/revokeAllCredentialsUseCase.ts": "b7c3585313ac443d971810a148b9ce9c82ac6241cb8043df41643879693d182d",
-        "packages/@core/auth/application/revokeCredentialUseCase.ts": "959149b5174abaacd368d64100ec5d5aa056b1f64a6aa5fb8d77b20e4d7012e0",
-        "packages/@core/auth/application/verifyApiKeyUseCase.ts": "84c9735de47129b970dddacf800809cd1694f9cfeba43da54db769f650c160a9",
-        "packages/@core/auth/application/verifyOAuthProviderUseCase.ts": "6721da26a18b800a53e810c73843d21a63ccb19bfd5ee770129e5690fb30e88f",
-        "packages/@core/auth/application/verifyPasswordUseCase.ts": "06e4a24dde652e7253e79b2f61dde39467a2efce5cb42fdd74040a17738c0b55",
-        "packages/@core/auth/capabilities.yml": "35aa629eedb9a7b4a8ecaecfc1b78d7c80b76ee33c4a74b3a33048209f5c9fbd",
+        "packages/@core/auth/application/changePasswordUseCase.ts": "4f64c2557b9781bbcd08cc9bade11d4572f69694fbb7506f9404f5db3aa651ad",
+        "packages/@core/auth/application/createApiKeyUseCase.ts": "fff19fe5c88857aafaca09690af90c32814f0354f028cd8c6790f41558e558ef",
+        "packages/@core/auth/application/createPasswordCredentialUseCase.ts": "b0b941b6de1a3d05f7f29b7cbeeb661a2ec761b4d673ad9426851dd5e6a7e070",
+        "packages/@core/auth/application/hasActiveCredentialUseCase.ts": "355ae6fb7ce45d3633138ecaba0d800f1d46fb1832ca81ce43881b15ab7da2b8",
+        "packages/@core/auth/application/linkOAuthProviderUseCase.ts": "c2644790516e5a55a09628132ee6cfa378662ea68564760bc127173f5d0afa17",
+        "packages/@core/auth/application/revokeAllCredentialsUseCase.ts": "641513986d768a57c0ad9abd08375264caebdb8a0508eceb9eed76a6ff0b23d3",
+        "packages/@core/auth/application/revokeCredentialUseCase.ts": "887e82d60d9e12b18ffc072b6241e001ec6d383a0ad3da87297f2a064a4d0f71",
+        "packages/@core/auth/application/verifyApiKeyUseCase.ts": "a860305590a767a9e5989f1bb58c416e9b1286191b66080496075c02121c043a",
+        "packages/@core/auth/application/verifyOAuthProviderUseCase.ts": "356bcf32b061f75fb6a5f36168e10d92a666fccf022badd14e52e5535aa31de4",
+        "packages/@core/auth/application/verifyPasswordUseCase.ts": "c40e6a6f228276d12257e81d1cccc767072252610caa11d5b0868ef4748068ce",
+        "packages/@core/auth/capabilities.yml": "d370e70041592af0dd2d416203238cee94ab4ef87846da19fc172a68450e2516",
         "packages/@core/auth/domain/credential.ts": "3e77e26cae2aeea4387a0412d661b7a730732b85f581767736c34cd1f62a0699",
         "packages/@core/auth/domain/credentialRepository.ts": "b7bea2b763254fa98d6afd2390e11587ff44112185b0a1a432ba7cc2c765ac8d",
         "packages/@core/auth/index.ts": "13b17019d7b1a568115555f25b0e51527e332782c1f42803954926d9866974e7",
@@ -335,24 +343,24 @@
         "packages/@core/auth/schema/index.ts": "9fa0e705af9e7bd9f88230bb0705a37064e5468e69a1a6e1c0599ab8dfcad691",
         "packages/@core/auth/schema/relations.ts": "c41c56d4edc5ea75a7117f93429683f04b962864e2ba7230331da2f05a880564"
       },
-      "compositeHash": "fe25c534c5333ee730309e8e71583e55315aaaafc157784fa3ffd1211bd6ceff"
+      "compositeHash": "a40c9329f015e219645f9c28c42b586903faa701b254eea34920e50614caa6b0"
     },
     "iam": {
       "name": "iam",
       "category": "package",
-      "installedAt": "2026-03-20T11:06:39.500Z",
-      "sourceCommit": "90b3144a3b5ca597e9573a758addb177a0ebd2bd",
+      "installedAt": "2026-03-31T12:18:31.420Z",
+      "sourceCommit": "a688d1dd86bd4517cb8c0f1de3e445f98cfe3ba4",
       "files": {
         "packages/@core/iam/README.md": "b6435ff99f1fdcdda3ba57fb3b7c5d6b9afde44a621c74df5606e69461f2e2d7",
         "packages/@core/iam/application/accessError.ts": "d53dfd6c4296082775cdc74ea6e77884f481c7bbbda8c2101783f4dff1bda1ce",
-        "packages/@core/iam/application/buildPrincipalAbilityUseCase.ts": "8566504f19749d0ff01c034f7b0c650bf2b119c3e82446cdb057c5ecebb915d4",
-        "packages/@core/iam/application/createPolicyUseCase.ts": "db7bfafa5e853e4b868ed4ec97f098edd0b1fdeff55882acc591eaa4f506745e",
-        "packages/@core/iam/application/evaluateAccessUseCase.ts": "7f01d417880e71b9548ca62785993a53a2c5aef2055498eba273574452bceb14",
-        "packages/@core/iam/application/grantEntitlementUseCase.ts": "32f9ffcdcd7cd9ba77b9de98ebd48ce736ca56eb10e3424be4a0b84d5d1e4b72",
-        "packages/@core/iam/application/resolvePrincipalPermissionsUseCase.ts": "ba9ce890c0bdb2c1bfb730f105a2bc9017655c9e2b9d5290714c0572c9502bda",
-        "packages/@core/iam/application/revokeEntitlementUseCase.ts": "a3b58398ddbbd9084c0ecca5f3d66a373e8ab038e4675e171a3e7f38b0de3faf",
-        "packages/@core/iam/application/updatePolicyActionsUseCase.ts": "2ef641cc52e09a458f9f7616a2d07203cd51339fdb4e7d5e6f0830580cd35259",
-        "packages/@core/iam/capabilities.yml": "901821972665324f99e6bc1568775b7f7231748c4f3289dc5f7dfaae47b83ee4",
+        "packages/@core/iam/application/buildPrincipalAbilityUseCase.ts": "72e5be515a2a087b475c35e0dded5e8360ad217eb36f716303f3e7b6552e9b40",
+        "packages/@core/iam/application/createPolicyUseCase.ts": "319ffdb595afc456f83b2a6ebc66bfedf03b2581bc32088183a792306290191d",
+        "packages/@core/iam/application/evaluateAccessUseCase.ts": "12343e5ba39c60ffa865a3d72622579c6b6488f33ef352447c651b93dad3be4f",
+        "packages/@core/iam/application/grantEntitlementUseCase.ts": "b08383b872e4a92e0b5b23dc9c1c3c904e56e633fa7ca7a35dc8a7bd3fa9497e",
+        "packages/@core/iam/application/resolvePrincipalPermissionsUseCase.ts": "466a3611be8f003536e2db3a860d476eef351b92ce49f0127684112e06381636",
+        "packages/@core/iam/application/revokeEntitlementUseCase.ts": "00cb5d6a16cc73a8fa870b3edb0ec2f9e750571c4e27e0f15586ac0a82e02b6c",
+        "packages/@core/iam/application/updatePolicyActionsUseCase.ts": "78465e2630bab8d69296adf9b84eb72f359e38695fe294e22b1aa0cc56ce6232",
+        "packages/@core/iam/capabilities.yml": "b1b05a508aa6c611844f44a7505646b47ffa01099fe08b683bb0c04386c17415",
         "packages/@core/iam/domain/action.ts": "5f6a50bacbac752a3de3d8268e3300a1b4d317f4d917d0b954a8e759337372de",
         "packages/@core/iam/domain/entitlement.ts": "07b409b549e77730cb3eb215247250e79aad6faf77b4534069c4924c183d26a8",
         "packages/@core/iam/domain/entitlementRepository.ts": "6ccf8e7672ee321447284e4b2df2704e749a1d87f99d1df18ef3c4ab0d98f975",
@@ -370,7 +378,7 @@
         "packages/@core/iam/schema/policies.ts": "ac38eacd0827633ea4e701ecaf625fbbc4143c578a93fb329c4e69e99267545c",
         "packages/@core/iam/schema/relations.ts": "22029d11b9d2613bb1047b0b0cdfed2f2b450e348cea89d087dd2818e5cf6947"
       },
-      "compositeHash": "ebf54f508ddad632d61034a5c8b78952bf367530a005c459234b8a6a57c5b2f7"
+      "compositeHash": "6fce96b06479ad386c06079ba7d7bcb60b728720242e4245a7b0de5606c453c0"
     }
   }
 }

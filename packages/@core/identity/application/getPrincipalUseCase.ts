@@ -13,9 +13,6 @@ import { Result } from '../../../shared/lib/result';
 import { Principal } from '../domain/principal';
 import { IPrincipalRepository } from '../domain/principalRepository';
 import { IdentityError } from './identityError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -59,15 +56,3 @@ export const makeGetPrincipalUseCase = (repo: IPrincipalRepository) => {
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.identity.getPrincipal,
-  useCase: 'makeGetPrincipalUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [],
-  query: true,
-});

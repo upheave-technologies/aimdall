@@ -6,17 +6,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/nucleus-guard.sh",
-            "timeout": 10,
-            "statusMessage": "Checking nucleus package guard..."
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/architecture-guard.sh",
             "timeout": 10,
             "statusMessage": "Checking architecture guard..."
@@ -31,6 +20,17 @@
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/frankie-scope-guard.sh",
             "timeout": 10,
             "statusMessage": "Checking Frankie scope guard..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/nucleus-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking nucleus package guard..."
           }
         ]
       },

@@ -16,9 +16,6 @@ import { Result } from '../../../shared/lib/result';
 import { createAction } from '../domain/action';
 import { IPolicyRepository } from '../domain/policyRepository';
 import { AccessError } from './accessError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
 
 export type UpdatePolicyActionsInput = {
   policyId: string;
@@ -86,14 +83,3 @@ export const makeUpdatePolicyActionsUseCase = (
     }
   };
 };
-
-// =============================================================================
-// CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.iam.updatePolicyActions,
-  useCase: 'makeUpdatePolicyActionsUseCase',
-  preconditions: [EFFECTS.iam.policy.exists],
-  effects: [EFFECTS.iam.policy.updated],
-});

@@ -23,10 +23,6 @@ import { Result } from '../../../shared/lib/result';
 import { Credential, validatePrincipalId } from '../domain/credential';
 import { ICredentialRepository } from '../domain/credentialRepository';
 import { AuthError } from './authError';
-import { defineCapability } from '../../../shared/lib/capability';
-import { EFFECTS } from '../../../shared/lib/effects';
-import { CAPABILITIES } from '../../../shared/lib/capabilities';
-import { CONTEXTS } from '../../../shared/lib/contexts';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -107,15 +103,3 @@ export const makeCreateApiKeyUseCase = (
     }
   };
 };
-
-// =============================================================================
-// SECTION 3: CAPABILITY ANNOTATION
-// =============================================================================
-
-export const capability = defineCapability({
-  name: CAPABILITIES.auth.createApiKey,
-  useCase: 'makeCreateApiKeyUseCase',
-  preconditions: [EFFECTS.identity.principal.exists],
-  effects: [EFFECTS.auth.credential.exists],
-  context: CONTEXTS.credentialType.apiKey,
-});
