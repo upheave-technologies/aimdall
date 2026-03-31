@@ -28,6 +28,7 @@ export type { ProviderCredential } from './providerCredential';
 export type { Model } from './model';
 export type { AttributionGroup, GroupType } from './attributionGroup';
 export type { AttributionRule, AttributionDimension, MatchType } from './attributionRule';
+export type { Budget, BudgetType, BudgetPeriodType, BudgetStatus } from './budget';
 
 export type {
   ExplorerDimension,

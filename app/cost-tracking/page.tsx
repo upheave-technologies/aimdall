@@ -1,99 +1,23 @@
-import Link from 'next/link';
 import { getUsageSummary } from '@/modules/cost-tracking/application/getUsageSummaryUseCase';
-import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/domain/types';
-import { ProviderCards } from './_components/ProviderCards';
-import { UsageSummaryTable } from './_components/UsageSummaryTable';
-import { DailySpendTable } from './_components/DailySpendTable';
-import { SyncButtonContainer } from './_containers/SyncButtonContainer';
-import { DateRangeFilterContainer } from './_containers/DateRangeFilterContainer';
+import { getSpendForecast } from '@/modules/cost-tracking/application/getSpendForecastUseCase';
+import { getUnassignedSpend } from '@/modules/cost-tracking/application/getUnassignedSpendUseCase';
+import { detectSpendAnomalies } from '@/modules/cost-tracking/application/detectSpendAnomaliesUseCase';
+import { getBudgetStatus } from '@/modules/cost-tracking/application/getBudgetStatusUseCase';
+import { DashboardView } from './_components/DashboardView';
+import type {
+  DashboardSummary,
+  DashboardForecast,
+  DashboardUnassignedSpend,
+  DashboardAnomalies,
+  DashboardBudgets,
+} from './_components/DashboardView';
 
 type SearchParams = Promise<{ from?: string; to?: string }>;
 
-// ---------------------------------------------------------------------------
-// Adapters — map new UsageSummaryRow shape to legacy component prop types
-// ---------------------------------------------------------------------------
-
-type LegacyProviderSummary = {
-  providerId: string;
-  provider: string; // providerDisplayName
-  totalCostUsd: string;
-  totalRequests: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-};
-
-type LegacySummaryRow = {
-  provider: string; // providerDisplayName
-  model: string;
-  credential: string; // formatted label, e.g. "Production API Key (•••• hmiT)"
-  accountSegment?: string; // segmentDisplayName
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalCachedInputTokens: number;
-  totalCacheCreationTokens: number;
-  totalRequests: number;
-  totalCostUsd: string;
-  providerId?: string;
-  modelSlug?: string;
-  credentialId?: string;
-};
-
-type LegacyDailySpendRow = {
-  date: string;
-  providerSlug: string;
-  providerDisplayName: string;
-  totalCostUsd: string;
-  totalRequests: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-};
-
-function toProviderSummary(row: UsageSummaryRow): LegacyProviderSummary {
-  return {
-    providerId: row.providerId,
-    provider: row.providerDisplayName,
-    totalCostUsd: row.totalCost,
-    totalRequests: row.totalRequests,
-    totalInputTokens: row.totalInputTokens,
-    totalOutputTokens: row.totalOutputTokens,
-  };
-}
-
-function formatCredential(row: UsageSummaryRow): string {
-  if (!row.credentialLabel) return row.credentialId ?? '—';
-  if (row.credentialKeyHint) return `${row.credentialLabel} (•••• ${row.credentialKeyHint})`;
-  return row.credentialLabel;
-}
-
-function toSummaryRow(row: UsageSummaryRow): LegacySummaryRow {
-  return {
-    provider: row.providerDisplayName,
-    model: row.modelSlug,
-    credential: formatCredential(row),
-    accountSegment: row.segmentDisplayName,
-    totalInputTokens: row.totalInputTokens,
-    totalOutputTokens: row.totalOutputTokens,
-    totalCachedInputTokens: row.totalCachedInputTokens,
-    totalCacheCreationTokens: 0, // field removed in v2 schema
-    totalRequests: row.totalRequests,
-    totalCostUsd: row.totalCost,
-    providerId: row.providerId,
-    modelSlug: row.modelSlug,
-    credentialId: row.credentialId,
-  };
-}
-
-function toDailySpendRow(row: DailySpendRow): LegacyDailySpendRow {
-  return {
-    date: row.date,
-    providerSlug: row.providerSlug,
-    providerDisplayName: row.providerDisplayName,
-    totalCostUsd: row.totalCost,
-    totalRequests: row.totalRequests,
-    totalInputTokens: row.totalInputTokens,
-    totalOutputTokens: row.totalOutputTokens,
-  };
-}
+const EMPTY_FORECAST: DashboardForecast = null;
+const EMPTY_UNASSIGNED: DashboardUnassignedSpend = null;
+const EMPTY_ANOMALIES: DashboardAnomalies = null;
+const EMPTY_BUDGETS: DashboardBudgets = null;
 
 export default async function CostTrackingPage({
   searchParams,
@@ -101,63 +25,58 @@ export default async function CostTrackingPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-
   const startDate = params.from ? new Date(params.from) : undefined;
   const endDate = params.to ? new Date(params.to) : undefined;
 
-  const result = await getUsageSummary({ startDate, endDate });
+  const now = new Date();
+  const mtdStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  if (!result.success) {
-    return (
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
-        <p className="mt-4 text-red-500">
-          Failed to load usage data: {result.error.message}
-        </p>
-      </main>
-    );
+  const [summaryResult, mtdSummaryResult, forecastResult, unassignedResult, anomaliesResult, budgetsResult] =
+    await Promise.all([
+      getUsageSummary({ startDate, endDate }),
+      getUsageSummary({ startDate: mtdStart }), // MTD — always current month, no filter
+      getSpendForecast({}),
+      getUnassignedSpend({}),
+      detectSpendAnomalies({}),
+      getBudgetStatus({}),
+    ]);
+
+  if (!summaryResult.success) {
+    throw new Error(summaryResult.error.message);
   }
 
-  const { byProvider, byModel, byCredential, dailySpend } = result.value;
+  const summary: DashboardSummary = summaryResult.value;
+
+  const mtdSummary: DashboardSummary = mtdSummaryResult.success
+    ? mtdSummaryResult.value
+    : summaryResult.value;
+
+  const forecast: DashboardForecast = forecastResult.success
+    ? forecastResult.value
+    : EMPTY_FORECAST;
+
+  const unassignedSpend: DashboardUnassignedSpend = unassignedResult.success
+    ? unassignedResult.value
+    : EMPTY_UNASSIGNED;
+
+  const anomalies: DashboardAnomalies = anomaliesResult.success
+    ? anomaliesResult.value
+    : EMPTY_ANOMALIES;
+
+  const budgets: DashboardBudgets = budgetsResult.success
+    ? budgetsResult.value
+    : EMPTY_BUDGETS;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-4">
-          <h1 className="text-2xl font-bold">LLM Cost Tracker</h1>
-          <Link
-            href="/cost-tracking/attributions"
-            className="text-sm text-foreground/60 underline-offset-4 hover:underline"
-          >
-            Attributions →
-          </Link>
-          <Link
-            href="/cost-tracking/explore"
-            className="text-sm text-foreground/60 underline-offset-4 hover:underline"
-          >
-            Explorer →
-          </Link>
-        </div>
-        <SyncButtonContainer />
-      </div>
-
-      <DateRangeFilterContainer />
-
-      <ProviderCards data={byProvider.map(toProviderSummary)} />
-
-      <DailySpendTable data={dailySpend.map(toDailySpendRow)} />
-
-      <UsageSummaryTable
-        title="Cost by Model"
-        data={byModel.map(toSummaryRow)}
-        groupBy="model"
-      />
-
-      <UsageSummaryTable
-        title="Cost by Credential"
-        data={byCredential.map(toSummaryRow)}
-        groupBy="credential"
-      />
-    </main>
+    <DashboardView
+      summary={summary}
+      forecast={forecast}
+      unassignedSpend={unassignedSpend}
+      anomalies={anomalies}
+      budgets={budgets}
+      mtdSummary={mtdSummary}
+      hasFilter={!!(params.from || params.to)}
+      filterLabel={params.from && params.to ? `${params.from} – ${params.to}` : params.from ? `From ${params.from}` : params.to ? `Until ${params.to}` : null}
+    />
   );
 }
