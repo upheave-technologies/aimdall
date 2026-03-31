@@ -605,7 +605,7 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
     const filterFragments = filters.map((f) => {
       switch (f.dimension) {
         case 'provider':
-          return sql`AND ur.provider_id = ${f.value}`;
+          return sql`AND ur.provider_id = (SELECT id FROM cost_tracking_providers WHERE slug = ${f.value} AND deleted_at IS NULL LIMIT 1)`;
         case 'model':
           return sql`AND ur.model_slug = ${f.value}`;
         case 'credential':

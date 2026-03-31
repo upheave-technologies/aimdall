@@ -44,7 +44,7 @@ export default async function ReportPage() {
     getUsageSummary({ startDate: monthStart, endDate: monthEnd }),
     getUsageSummary({ startDate: lastMonthStart, endDate: lastMonthEnd }),
     getSpendForecast({}),
-    detectSpendAnomalies({ lookbackDays: 45 }),
+    detectSpendAnomalies({ windowDays: 90 }),
     getBudgetStatus({}),
     getUnassignedSpend({}),
     getAttributionSummary({}),

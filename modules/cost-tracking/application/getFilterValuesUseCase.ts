@@ -68,7 +68,7 @@ export const makeGetFilterValuesUseCase = (
           const providers = await providerRepo.findAll();
           return {
             success: true,
-            value: providers.map((p) => ({ value: p.id, label: p.displayName })),
+            value: providers.map((p) => ({ value: p.slug, label: p.displayName })),
           };
         }
 

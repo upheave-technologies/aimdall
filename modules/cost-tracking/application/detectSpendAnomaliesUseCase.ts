@@ -2,13 +2,14 @@
 // Application — Detect Spend Anomalies Use Case
 // =============================================================================
 // Analyses daily spend time-series per provider to surface statistical
-// anomalies — spikes and drops — relative to a trailing 14-day baseline.
+// anomalies — spikes and drops — relative to a trailing baseline.
 //
 // Flow:
-//   1. Compute lookback start date
-//   2. Fetch daily spend for the lookback period
+//   1. Compute fetch window: windowDays * 2 (extra history for baseline)
+//   2. Fetch daily spend for the fetch window
 //   3. Group rows by providerSlug
-//   4. For each provider, scan the last 7 days against a trailing-14-day baseline
+//   4. For each provider, scan all dates within the last windowDays
+//      against a trailing windowDays-deep baseline
 //   5. Classify and score each anomaly
 //   6. Sort by date DESC, then severity
 //   7. Return result with metadata
@@ -27,7 +28,7 @@ import { db } from '@/lib/db';
 // =============================================================================
 
 export type DetectSpendAnomaliesInput = {
-  lookbackDays?: number; // default 30
+  windowDays?: 30 | 90 | 180; // default 30
 };
 
 export type SpendAnomaly = {
@@ -79,15 +80,17 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
     data: DetectSpendAnomaliesInput,
   ): Promise<Result<SpendAnomaliesResult, CostTrackingError>> => {
     try {
-      const lookbackDays = data.lookbackDays ?? 30;
+      const windowDays = data.windowDays ?? 30;
       const now = new Date();
 
-      // Step 1: Compute lookback window (UTC)
-      const lookbackStart = new Date(
+      // Step 1: Compute fetch window (UTC).
+      // Fetch windowDays * 2 days of data so every detection date has
+      // enough history available for its baseline calculation.
+      const fetchStart = new Date(
         Date.UTC(
           now.getUTCFullYear(),
           now.getUTCMonth(),
-          now.getUTCDate() - lookbackDays,
+          now.getUTCDate() - windowDays * 2,
         ),
       );
       const today = new Date(
@@ -95,7 +98,7 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
       );
 
       // Step 2: Fetch daily spend
-      const rows = await repo.findDailySpend(lookbackStart, today);
+      const rows = await repo.findDailySpend(fetchStart, today);
 
       // Step 3: Group by provider
       const providerMap = new Map<
@@ -122,16 +125,16 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
         new Set(rows.map((r) => r.date)),
       ).sort();
 
-      // Detection window: last 7 days (by date string)
+      // Detection window: all dates within the last windowDays days
       const todayStr = now.toISOString().slice(0, 10);
-      const sevenDaysAgoStr = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6),
+      const windowStartStr = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (windowDays - 1)),
       )
         .toISOString()
         .slice(0, 10);
 
       const detectionDates = allDates.filter(
-        (d) => d >= sevenDaysAgoStr && d <= todayStr,
+        (d) => d >= windowStartStr && d <= todayStr,
       );
 
       const anomalies: SpendAnomaly[] = [];
@@ -144,10 +147,10 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
           const dateIdx = sortedProviderDates.indexOf(date);
           if (dateIdx < 0) continue;
 
-          // Trailing 14-day baseline: dates strictly before `date`
+          // Trailing baseline: up to windowDays dates strictly before `date`
           const baselineDates = sortedProviderDates
             .slice(0, dateIdx)
-            .slice(-14);
+            .slice(-windowDays);
 
           // Need at least 3 days of history
           if (baselineDates.length < 3) continue;
@@ -199,7 +202,7 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
         success: true,
         value: {
           anomalies,
-          analysisDays: lookbackDays,
+          analysisDays: windowDays,
           providersAnalyzed: providerMap.size,
           lastUpdated: now.toISOString(),
         },

@@ -3,9 +3,28 @@ import { getUsageSummary } from '@/modules/cost-tracking/application/getUsageSum
 import { AlertsView } from './_components/AlertsView';
 import type { AnomaliesData, SummaryData } from './_components/AlertsView';
 
-export default async function AlertsPage() {
+type SearchParams = Promise<{ window?: string }>;
+
+const VALID_WINDOWS = [30, 90, 180] as const;
+type WindowDays = (typeof VALID_WINDOWS)[number];
+
+function parseWindowDays(raw: string | undefined): WindowDays {
+  const parsed = parseInt(raw ?? '', 10);
+  return (VALID_WINDOWS as readonly number[]).includes(parsed)
+    ? (parsed as WindowDays)
+    : 30;
+}
+
+export default async function AlertsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const windowDays = parseWindowDays(params.window);
+
   const [anomaliesResult, summaryResult] = await Promise.all([
-    detectSpendAnomalies({ lookbackDays: 30 }),
+    detectSpendAnomalies({ windowDays }),
     getUsageSummary({}),
   ]);
 
