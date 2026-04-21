@@ -56,6 +56,7 @@ import { makeProviderCostRepository } from '../infrastructure/repositories/Drizz
 import { makeSyncLogRepository, makeSyncCursorRepository } from '../infrastructure/repositories/DrizzleSyncRepository';
 import { makeProviderRepository, makeProviderCredentialRepository, makeModelRepository } from '../infrastructure/repositories/DrizzleProviderRepository';
 import { generateDedupKey } from '../infrastructure/dedupKeyHasher';
+import { buildProviderClients, ProviderClientConfig } from '../infrastructure/providers/buildProviderClients';
 import { db } from '@/lib/db';
 
 // =============================================================================
@@ -584,3 +585,26 @@ const syncDeps: SyncDeps = {
  */
 export const syncProviderUsage = (clients: ProviderUsageClient[]) =>
   makeSyncProviderUsageUseCase(syncDeps, clients);
+
+/**
+ * Pre-wired sync use case that reads provider credentials from environment
+ * variables. Used by the sync API route so it doesn't need to import
+ * infrastructure-layer provider factories directly.
+ *
+ * Usage:
+ *   import { syncProviderUsageFromEnv } from '.../syncProviderUsageUseCase';
+ *   const { clients, sync } = syncProviderUsageFromEnv();
+ *   if (clients.length === 0) { ... }
+ *   const result = await sync({ startTime, endTime });
+ */
+export const syncProviderUsageFromEnv = () => {
+  const config: ProviderClientConfig = {
+    openaiApiKey: process.env.OPENAI_USAGE_API_KEY,
+    anthropicAdminApiKey: process.env.ANTHROPIC_ADMIN_API_KEY,
+    vertexProjectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+    geminiProjectId: process.env.GOOGLE_GEMINI_PROJECT_ID,
+    geminiApiKey: process.env.GOOGLE_GEMINI_API_KEY,
+  };
+  const clients = buildProviderClients(config);
+  return { clients, sync: makeSyncProviderUsageUseCase(syncDeps, clients) };
+};

@@ -2,54 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 120;
 
-import { syncProviderUsage } from '@/modules/cost-tracking/application/syncProviderUsageUseCase';
-import { makeOpenAIUsageClient } from '@/modules/cost-tracking/infrastructure/providers/openaiUsageClient';
-import { makeAnthropicUsageClient } from '@/modules/cost-tracking/infrastructure/providers/anthropicUsageClient';
-import { makeVertexUsageClient } from '@/modules/cost-tracking/infrastructure/providers/vertexUsageClient';
-import type { ProviderUsageClient } from '@/modules/cost-tracking/infrastructure/providers/types';
-import { logger } from '@/modules/cost-tracking/infrastructure/logger';
+import { syncProviderUsageFromEnv } from '@/modules/cost-tracking/application/syncProviderUsageUseCase';
 
 export async function POST(request: NextRequest) {
-  logger.info('route.sync.request', {
-    method: 'POST',
-    url: request.url,
-    userAgent: request.headers.get('user-agent') ?? undefined,
-  });
-
   const secret = process.env.COST_TRACKING_SYNC_SECRET;
   if (secret) {
     const auth = request.headers.get('authorization');
     if (auth !== `Bearer ${secret}`) {
-      logger.warn('route.sync.unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
 
-  const clients: ProviderUsageClient[] = [];
-
-  if (process.env.OPENAI_USAGE_API_KEY) {
-    clients.push(makeOpenAIUsageClient(process.env.OPENAI_USAGE_API_KEY));
-  }
-
-  if (process.env.ANTHROPIC_ADMIN_API_KEY) {
-    clients.push(makeAnthropicUsageClient(process.env.ANTHROPIC_ADMIN_API_KEY));
-  }
-
-  if (process.env.GOOGLE_CLOUD_PROJECT_ID) {
-    clients.push(makeVertexUsageClient(process.env.GOOGLE_CLOUD_PROJECT_ID));
-  }
+  const { clients, sync } = syncProviderUsageFromEnv();
 
   if (clients.length === 0) {
-    logger.warn('route.sync.no_providers');
     return NextResponse.json(
       { error: 'No provider API keys configured' },
       { status: 400 },
     );
   }
-
-  logger.info('route.sync.providers_configured', {
-    providers: clients.map((c) => c.providerSlug),
-  });
 
   let startTime: Date | undefined;
   let endTime: Date | undefined;
@@ -62,24 +33,14 @@ export async function POST(request: NextRequest) {
     // Use defaults
   }
 
-  const syncUsage = syncProviderUsage(clients);
-  const result = await syncUsage({ startTime, endTime });
+  const result = await sync({ startTime, endTime });
 
   if (!result.success) {
-    logger.error('route.sync.failed', {
-      error: result.error.message,
-      code: result.error.code,
-    });
     return NextResponse.json(
       { error: result.error.message, code: result.error.code },
       { status: 500 },
     );
   }
-
-  logger.info('route.sync.response', {
-    synced: result.value.synced.length,
-    failed: result.value.failed.length,
-  });
 
   return NextResponse.json(result.value);
 }

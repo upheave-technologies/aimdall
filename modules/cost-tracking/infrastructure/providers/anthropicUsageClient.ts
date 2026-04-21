@@ -37,6 +37,7 @@
 //   inference_geo                            → region
 //   uncached_input_tokens                    → inputTokens (already uncached)
 //   output_tokens                            → outputTokens
+//   thinking_tokens                          → thinkingTokens
 //   cache_read_input_tokens                  → cachedInputTokens
 //   cache_creation.ephemeral_5m_input_tokens
 //     + cache_creation.ephemeral_1h_input_tokens → cacheWriteTokens
@@ -65,6 +66,7 @@ type AnthropicUsageResult = {
     ephemeral_1h_input_tokens: number;
   };
   output_tokens: number;
+  thinking_tokens: number;
   server_tool_use: {
     web_search_requests: number;
   };
@@ -243,6 +245,7 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
             // Anthropic's uncached_input_tokens is already uncached — no deduction needed
             inputTokens: result.uncached_input_tokens,
             outputTokens: result.output_tokens,
+            thinkingTokens: result.thinking_tokens ?? 0,
             cachedInputTokens: result.cache_read_input_tokens,
             cacheWriteTokens,
             searchCount: result.server_tool_use?.web_search_requests ?? 0,

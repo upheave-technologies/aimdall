@@ -7,38 +7,53 @@
 // Library:
 //   @google-cloud/monitoring — MetricServiceClient
 //
-// Metric queried:
+// Metrics queried:
 //   aiplatform.googleapis.com/publisher/online_serving/token_count
+//   aiplatform.googleapis.com/publisher/online_serving/request_count
 //
 // Resource:
 //   projects/${projectId}
 //
 // Filter:
 //   metric.type = "aiplatform.googleapis.com/publisher/online_serving/token_count"
+//   metric.type = "aiplatform.googleapis.com/publisher/online_serving/request_count"
 //
-// Grouping dimensions:
-//   resource.labels.model_id  — identifies the model
-//   metric.labels.type        — "input" | "output" (distinguishes token kinds)
+// Grouping dimensions (token_count query):
+//   resource.labels.model_id     — identifies the model
+//   metric.labels.type           — "input" | "output" (distinguishes token kinds)
+//   metric.labels.is_cache_hit   — "true" | "false" (context cache hit indicator)
+//
+// Grouping dimensions (request_count query):
+//   resource.labels.model_id     — identifies the model
 //
 // Aggregation:
 //   Per-series alignment to 1-hour periods using ALIGN_SUM so each data point
-//   represents total tokens in that bucket.
+//   represents total tokens/requests in that bucket.
+//
+// is_cache_hit label:
+//   Added to Vertex AI monitoring in 2024. Older deployments may not emit it;
+//   the code defaults to "false" so all tokens are treated as uncached when the
+//   label is absent. When "true", input tokens are counted as cachedInputTokens
+//   rather than inputTokens to avoid overestimating costs.
 //
 // Field mapping (time-series row → RawProviderUsageData):
-//   resource.labels.model_id  → modelSlug
-//   projectId                 → credentialExternalId (project is the billing scope)
-//   undefined                 → segmentExternalId    (Vertex has no sub-project segment)
-//   interval start            → bucketStart
-//   interval start + 1h       → bucketEnd
-//   "1h"                      → bucketWidth
-//   "text_generation"         → serviceCategory
-//   sum of "input" points     → inputTokens
-//   sum of "output" points    → outputTokens
-//   0                         → requestCount (Vertex token metric has no request count)
+//   resource.labels.model_id                  → modelSlug
+//   projectId                                 → credentialExternalId (project is the billing scope)
+//   undefined                                 → segmentExternalId    (Vertex has no sub-project segment)
+//   interval start                            → bucketStart
+//   interval start + 1h                       → bucketEnd
+//   "1h"                                      → bucketWidth
+//   "text_generation"                         → serviceCategory
+//   sum of "input" points (is_cache_hit=false) → inputTokens
+//   sum of "input" points (is_cache_hit=true)  → cachedInputTokens
+//   sum of "output" points                    → outputTokens
+//   sum of request_count points               → requestCount
 //
 // Error handling:
-//   Any exception from the Monitoring SDK is caught, logged, and returns the
-//   rows collected so far (or empty array). The client never throws.
+//   Any exception from the token_count query is caught, logged, and returns the
+//   rows collected so far (or empty array). The request_count query failure is
+//   treated as non-fatal: a warning is logged and token data is returned without
+//   request counts. The client never throws.
 // =============================================================================
 
 import { MetricServiceClient } from '@google-cloud/monitoring';
@@ -52,6 +67,9 @@ import { logger } from '../logger';
 const TOKEN_COUNT_METRIC =
   'aiplatform.googleapis.com/publisher/online_serving/token_count';
 
+const REQUEST_COUNT_METRIC =
+  'aiplatform.googleapis.com/publisher/online_serving/request_count';
+
 /** Alignment period of 1 hour in seconds. */
 const ALIGNMENT_PERIOD_SECONDS = 3600;
 
@@ -59,10 +77,12 @@ const ALIGNMENT_PERIOD_SECONDS = 3600;
 // SECTION 2: INTERNAL TYPES
 // =============================================================================
 
-/** Accumulator for merging input/output token counts per (model, bucketStart). */
+/** Accumulator for merging input/output/cached token counts and request counts per (model, bucketStart). */
 type TokenAccumulator = {
   inputTokens: number;
   outputTokens: number;
+  cachedInputTokens: number;
+  requestCount: number;
 };
 
 // =============================================================================
@@ -120,7 +140,7 @@ export const makeVertexUsageClient = (projectId: string): ProviderUsageClient =>
           alignmentPeriod: { seconds: ALIGNMENT_PERIOD_SECONDS },
           perSeriesAligner: 'ALIGN_SUM',
           crossSeriesReducer: 'REDUCE_NONE',
-          groupByFields: ['resource.labels.model_id', 'metric.labels.type'],
+          groupByFields: ['resource.labels.model_id', 'metric.labels.type', 'metric.labels.is_cache_hit'],
         },
         view: 'FULL',
       });
@@ -140,14 +160,20 @@ export const makeVertexUsageClient = (projectId: string): ProviderUsageClient =>
           const key = makeKey(modelId, bucketStart);
 
           if (!accumulator.has(key)) {
-            accumulator.set(key, { inputTokens: 0, outputTokens: 0 });
+            accumulator.set(key, { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, requestCount: 0 });
           }
 
           const entry = accumulator.get(key)!;
           const tokenValue = Number(point.value?.int64Value ?? point.value?.doubleValue ?? 0);
+          const isCacheHit =
+            (series.metric?.labels as Record<string, string> | null | undefined)?.['is_cache_hit'] ?? 'false';
 
           if (tokenType === 'input') {
-            entry.inputTokens += tokenValue;
+            if (isCacheHit === 'true') {
+              entry.cachedInputTokens += tokenValue;
+            } else {
+              entry.inputTokens += tokenValue;
+            }
           } else if (tokenType === 'output') {
             entry.outputTokens += tokenValue;
           }
@@ -163,6 +189,56 @@ export const makeVertexUsageClient = (projectId: string): ProviderUsageClient =>
         provider: 'google_vertex',
         error: error instanceof Error ? error.message : String(error),
         durationMs: Date.now() - fetchStart,
+      });
+    }
+
+    // Second query: request counts. Non-fatal — warn and continue with token data if it fails.
+    try {
+      const [requestTimeSeries] = await client.listTimeSeries({
+        name: projectName,
+        filter: `metric.type = "${REQUEST_COUNT_METRIC}"`,
+        interval: {
+          startTime: { seconds: Math.floor(startTime.getTime() / 1_000) },
+          endTime: { seconds: Math.floor(endTime.getTime() / 1_000) },
+        },
+        aggregation: {
+          alignmentPeriod: { seconds: ALIGNMENT_PERIOD_SECONDS },
+          perSeriesAligner: 'ALIGN_SUM',
+          crossSeriesReducer: 'REDUCE_NONE',
+          groupByFields: ['resource.labels.model_id'],
+        },
+        view: 'FULL',
+      });
+
+      for (const series of requestTimeSeries) {
+        const modelId =
+          (series.resource?.labels as Record<string, string> | null | undefined)?.['model_id'] ??
+          'unknown';
+
+        for (const point of series.points ?? []) {
+          const startSeconds = point.interval?.startTime?.seconds;
+          if (startSeconds === undefined || startSeconds === null) continue;
+
+          const bucketStart = new Date(Number(startSeconds) * 1_000);
+          const key = makeKey(modelId, bucketStart);
+
+          if (!accumulator.has(key)) {
+            accumulator.set(key, { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, requestCount: 0 });
+          }
+
+          const entry = accumulator.get(key)!;
+          entry.requestCount += Number(point.value?.int64Value ?? point.value?.doubleValue ?? 0);
+        }
+      }
+
+      logger.info('provider.fetch.request_timeseries', {
+        provider: 'google_vertex',
+        seriesCount: requestTimeSeries.length,
+      });
+    } catch (error) {
+      logger.warn('provider.fetch.request_count_error', {
+        provider: 'google_vertex',
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -182,9 +258,10 @@ export const makeVertexUsageClient = (projectId: string): ProviderUsageClient =>
         bucketStart,
         bucketEnd: new Date(bucketStart.getTime() + 3_600_000),
         bucketWidth: '1h',
-        inputTokens: tokens.inputTokens,
-        outputTokens: tokens.outputTokens,
-        requestCount: 0,
+        inputTokens: tokens.inputTokens > 0 ? tokens.inputTokens : undefined,
+        outputTokens: tokens.outputTokens > 0 ? tokens.outputTokens : undefined,
+        cachedInputTokens: tokens.cachedInputTokens > 0 ? tokens.cachedInputTokens : undefined,
+        requestCount: tokens.requestCount > 0 ? tokens.requestCount : undefined,
       });
     }
 
