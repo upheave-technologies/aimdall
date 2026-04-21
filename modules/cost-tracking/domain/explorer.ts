@@ -319,3 +319,34 @@ export const selectMetricsForContext = (
 
   return configs;
 };
+
+/**
+ * Counts how many days in a time series are statistical anomalies.
+ *
+ * A day is anomalous when its total spend deviates more than 2 standard
+ * deviations from the mean of the entire window.
+ *
+ * Returns 0 when the series is too short to be statistically meaningful
+ * (fewer than 4 distinct date points).
+ *
+ * This is the canonical anomaly count used across all surfaces — never
+ * duplicate this logic elsewhere.
+ */
+export const computeWindowAnomalyCount = (timeSeries: TimeSeriesPoint[]): number => {
+  if (timeSeries.length < 4) return 0;
+
+  const byDate = new Map<string, number>();
+  for (const p of timeSeries) {
+    byDate.set(p.date, (byDate.get(p.date) ?? 0) + parseFloat(p.totalCost || '0'));
+  }
+
+  const values = Array.from(byDate.values());
+  if (values.length < 4) return 0;
+
+  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length;
+  const stddev = Math.sqrt(variance);
+
+  if (stddev === 0) return 0;
+  return values.filter((v) => Math.abs(v - mean) > 2 * stddev).length;
+};

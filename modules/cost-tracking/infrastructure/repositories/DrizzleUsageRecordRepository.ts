@@ -543,9 +543,9 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
       // Direct-column dimensions: derive SQL from the dimension name.
       switch (groupBy) {
         case 'provider':
-          selectGroupKey = sql`ur.provider_id`;
+          selectGroupKey = sql`p.slug`;
           selectGroupLabel = sql`p.display_name`;
-          groupByColumns = sql`ur.provider_id, p.display_name`;
+          groupByColumns = sql`p.slug, p.display_name`;
           dimensionJoin = sql``; // base join already provides the `p` alias
           break;
         case 'model':

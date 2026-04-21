@@ -41,4 +41,4 @@ export type {
   ExplorerMetricConfig,
 } from './explorer';
 
-export { selectMetricsForContext } from './explorer';
+export { selectMetricsForContext, computeWindowAnomalyCount } from './explorer';
