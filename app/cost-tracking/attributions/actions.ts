@@ -6,6 +6,9 @@ import { deleteAttributionGroup } from '@/modules/cost-tracking/application/dele
 import { createAttributionRule } from '@/modules/cost-tracking/application/createAttributionRuleUseCase';
 import { deleteAttributionRule } from '@/modules/cost-tracking/application/deleteAttributionRuleUseCase';
 import { migrateKeyAssignments } from '@/modules/cost-tracking/application/migrateKeyAssignmentsUseCase';
+import { applyAttributionTemplate } from '@/modules/cost-tracking/application/applyAttributionTemplateUseCase';
+import { previewAttributionRule } from '@/modules/cost-tracking/application/previewAttributionRuleUseCase';
+import type { TemplateType, RulePreviewResult } from '@/modules/cost-tracking/domain/types';
 
 // =============================================================================
 // Action Result Type
@@ -210,4 +213,138 @@ export async function runMigrationAction(formData: FormData): Promise<
 
   revalidatePath('/cost-tracking/attributions');
   return { success: true, data: result.value };
+}
+
+// =============================================================================
+// applyTemplateAction
+// =============================================================================
+
+/**
+ * Bulk-creates attribution groups and credential-based rules from a template.
+ *
+ * Presence validation: templateType and groupNames must be provided.
+ * Business rules (slug uniqueness, duplicate credentials) are enforced by the
+ * domain layer via validateTemplateInput.
+ */
+export async function applyTemplateAction(
+  formData: FormData,
+): Promise<ActionResult<{ groupsCreated: number; rulesCreated: number }>> {
+  const templateType = formData.get('templateType') as string | null;
+  const groupNamesRaw = formData.get('groupNames') as string | null;
+  const credentialAssignmentsRaw = formData.get('credentialAssignments') as string | null;
+
+  if (!templateType || templateType.trim().length === 0) {
+    return { success: false, error: 'Template type is required' };
+  }
+  if (!groupNamesRaw || groupNamesRaw.trim().length === 0) {
+    return { success: false, error: 'Group names are required' };
+  }
+
+  // Parse group names: split by comma, trim each, remove empty entries
+  const groupNames = groupNamesRaw
+    .split(',')
+    .map((n) => n.trim())
+    .filter((n) => n.length > 0);
+
+  if (groupNames.length === 0) {
+    return { success: false, error: 'At least one group name is required' };
+  }
+
+  // Parse credential assignments: JSON string mapping groupName → credentialId[]
+  // Default to empty assignments if not provided or invalid JSON
+  let credentialAssignments: Record<string, string[]> = {};
+  if (credentialAssignmentsRaw && credentialAssignmentsRaw.trim().length > 0) {
+    try {
+      credentialAssignments = JSON.parse(credentialAssignmentsRaw);
+    } catch {
+      return { success: false, error: 'Credential assignments must be valid JSON' };
+    }
+  }
+
+  const result = await applyAttributionTemplate({
+    templateType: templateType.trim() as TemplateType,
+    groupNames,
+    credentialAssignments,
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error.message };
+  }
+
+  revalidatePath('/cost-tracking/attributions');
+  return {
+    success: true,
+    data: { groupsCreated: result.value.groupsCreated, rulesCreated: result.value.rulesCreated },
+  };
+}
+
+// =============================================================================
+// previewRuleAction
+// =============================================================================
+
+/**
+ * Previews what a proposed attribution rule would match in existing usage data.
+ *
+ * Presence validation: dimension, matchType, and matchValue must be provided.
+ * Dimension support validation and data querying are handled by the use case.
+ */
+export async function previewRuleAction(
+  formData: FormData,
+): Promise<ActionResult<RulePreviewResult>> {
+  const dimension = formData.get('dimension') as string | null;
+  const matchType = formData.get('matchType') as string | null;
+  const matchValue = formData.get('matchValue') as string | null;
+
+  if (!dimension || dimension.trim().length === 0) {
+    return { success: false, error: 'Dimension is required' };
+  }
+  if (!matchType || matchType.trim().length === 0) {
+    return { success: false, error: 'Match type is required' };
+  }
+  if (!matchValue || matchValue.trim().length === 0) {
+    return { success: false, error: 'Match value is required' };
+  }
+
+  const result = await previewAttributionRule({
+    dimension: dimension.trim(),
+    matchType: matchType.trim(),
+    matchValue: matchValue.trim(),
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error.message };
+  }
+
+  revalidatePath('/cost-tracking/attributions');
+  return { success: true, data: result.value };
+}
+
+// =============================================================================
+// dismissSuggestionAction
+// =============================================================================
+
+/**
+ * Dismisses an auto-discovery suggestion.
+ *
+ * Presence validation: suggestionId and suggestionType must be provided.
+ * The dismissal use case will be wired once available — for now the action
+ * revalidates the page so the suggestion list refreshes.
+ */
+export async function dismissSuggestionAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const suggestionId = formData.get('suggestionId') as string | null;
+  const suggestionType = formData.get('suggestionType') as string | null;
+
+  if (!suggestionId || suggestionId.trim().length === 0) {
+    return { success: false, error: 'Suggestion ID is required' };
+  }
+  if (!suggestionType || suggestionType.trim().length === 0) {
+    return { success: false, error: 'Suggestion type is required' };
+  }
+
+  // Dismissal use case to be wired once available.
+  // For now: revalidate so the caller gets a fresh page on next load.
+  revalidatePath('/cost-tracking/attributions');
+  return { success: true };
 }
