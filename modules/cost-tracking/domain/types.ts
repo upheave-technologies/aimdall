@@ -42,3 +42,20 @@ export type {
 } from './explorer';
 
 export { selectMetricsForContext, computeWindowAnomalyCount } from './explorer';
+
+export type {
+  Recommendation,
+  RecommendationCategory,
+  RecommendationStatus,
+  RecommendationCandidate,
+} from './recommendation';
+
+export type {
+  TemplateType,
+  TemplateInput,
+  TemplateResult,
+  DiscoverySuggestion,
+  CredentialInfo,
+  CoverageResult,
+  RulePreviewResult,
+} from './attributionTemplate';

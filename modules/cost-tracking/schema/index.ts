@@ -29,6 +29,8 @@ export {
   costTrackingBudgetType,
   costTrackingBudgetPeriodType,
   costTrackingBudgetStatus,
+  costTrackingRecommendationCategory,
+  costTrackingRecommendationStatus,
 } from './enums';
 
 // Tables
@@ -45,6 +47,8 @@ export { costTrackingAttributionGroups } from './attributionGroups';
 export { costTrackingAttributionRules } from './attributionRules';
 export { costTrackingBudgets } from './budgets';
 export { costTrackingKeyAssignments } from './keyAssignments';
+export { costTrackingRecommendations } from './recommendations';
+export { costTrackingSuggestionDismissals } from './suggestionDismissals';
 
 // Relations
 export {
@@ -60,4 +64,6 @@ export {
   costTrackingAttributionGroupsRelations,
   costTrackingAttributionRulesRelations,
   costTrackingKeyAssignmentsRelations,
+  costTrackingRecommendationsRelations,
+  costTrackingSuggestionDismissalsRelations,
 } from './relations';

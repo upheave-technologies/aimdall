@@ -28,6 +28,8 @@ import { costTrackingSyncCursors } from './syncCursors';
 import { costTrackingAttributionGroups } from './attributionGroups';
 import { costTrackingAttributionRules } from './attributionRules';
 import { costTrackingKeyAssignments } from './keyAssignments';
+import { costTrackingRecommendations } from './recommendations';
+import { costTrackingSuggestionDismissals } from './suggestionDismissals';
 
 // ---------------------------------------------------------------------------
 // Providers — the top-level entity
@@ -211,3 +213,13 @@ export const costTrackingKeyAssignmentsRelations = relations(costTrackingKeyAssi
     references: [costTrackingProviderCredentials.id],
   }),
 }));
+
+// ---------------------------------------------------------------------------
+// Recommendations — cost-optimization recommendations (no FK relations)
+// ---------------------------------------------------------------------------
+export const costTrackingRecommendationsRelations = relations(costTrackingRecommendations, ({}) => ({}));
+
+// ---------------------------------------------------------------------------
+// Suggestion Dismissals — auto-discovery dismissal tracking (no FK relations)
+// ---------------------------------------------------------------------------
+export const costTrackingSuggestionDismissalsRelations = relations(costTrackingSuggestionDismissals, ({}) => ({}));

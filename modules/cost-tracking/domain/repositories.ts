@@ -40,6 +40,7 @@ import { Budget } from './budget';
 import { ServiceCategory } from './model';
 import { KeyAssignment } from './keyAssignment';
 import { ExplorerQuery, ExplorerResult } from './explorer';
+import { Recommendation } from './recommendation';
 
 // =============================================================================
 // SECTION 1: AGGREGATION TYPES
@@ -574,4 +575,69 @@ export type PrincipalRecord = {
 export type IPrincipalQueryRepository = {
   /** Find all active principals, ordered by name. */
   findAll: () => Promise<PrincipalRecord[]>;
+};
+
+// =============================================================================
+// SECTION 13: RECOMMENDATION REPOSITORY
+// =============================================================================
+
+export type IRecommendationRepository = {
+  /** Find all active (non-deleted, non-expired) recommendations. */
+  findActive: () => Promise<Recommendation[]>;
+
+  /** Find a recommendation by ID. */
+  findById: (id: string) => Promise<Recommendation | null>;
+
+  /** Insert a new recommendation. */
+  create: (rec: Recommendation) => Promise<void>;
+
+  /** Insert a batch of recommendations (for bulk generation). */
+  createBatch: (recs: Recommendation[]) => Promise<void>;
+
+  /** Update a recommendation (e.g., dismiss). */
+  update: (rec: Recommendation) => Promise<void>;
+
+  /** Expire all active recommendations (set status='expired') — used before regeneration. */
+  expireAll: () => Promise<number>;
+
+  /** Soft-delete a recommendation. */
+  softDelete: (id: string) => Promise<void>;
+};
+
+// =============================================================================
+// SECTION 14: SUGGESTION DISMISSAL REPOSITORY
+// =============================================================================
+
+/**
+ * A persisted record of a user dismissing an auto-discovery suggestion.
+ * suggestionId is a deterministic hash produced by the discovery function —
+ * the same grouping always yields the same hash, making the unique constraint
+ * on suggestion_id sufficient to prevent duplicates.
+ */
+export type SuggestionDismissal = {
+  id: string;
+  suggestionId: string;
+  suggestionType: string;
+  dismissedAt: Date;
+  createdAt: Date;
+};
+
+export type ISuggestionDismissalRepository = {
+  /** Find all dismissed suggestions. */
+  findAll: () => Promise<SuggestionDismissal[]>;
+
+  /** Check if a suggestion has been dismissed. */
+  isDismissed: (suggestionId: string) => Promise<boolean>;
+
+  /**
+   * Dismiss a suggestion (insert row).
+   * Idempotent — if already dismissed, this is a no-op (ON CONFLICT DO NOTHING).
+   */
+  dismiss: (dismissal: Omit<SuggestionDismissal, 'createdAt'>) => Promise<void>;
+
+  /** Undismiss a suggestion (hard delete — dismissals have no soft-delete). */
+  undismiss: (suggestionId: string) => Promise<void>;
+
+  /** Return all dismissed suggestion IDs as a Set for bulk filtering. */
+  findDismissedIds: () => Promise<Set<string>>;
 };

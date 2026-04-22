@@ -194,3 +194,24 @@ export const costTrackingBudgetStatus = pgEnum('cost_tracking_budget_status', [
   'exceeded',
   'archived',
 ]);
+
+// ---------------------------------------------------------------------------
+// Recommendation category — which analyzer produced the recommendation
+// ---------------------------------------------------------------------------
+export const costTrackingRecommendationCategory = pgEnum('cost_tracking_recommendation_category', [
+  'model_tier_optimization',
+  'cache_utilization',
+  'batch_api_opportunity',
+  'dormant_credentials',
+  'context_tier_analysis',
+  'provider_concentration_risk',
+]);
+
+// ---------------------------------------------------------------------------
+// Recommendation status — lifecycle state of a recommendation
+// ---------------------------------------------------------------------------
+export const costTrackingRecommendationStatus = pgEnum('cost_tracking_recommendation_status', [
+  'active',
+  'dismissed',
+  'expired',
+]);
