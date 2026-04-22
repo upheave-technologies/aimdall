@@ -224,33 +224,42 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
         const bucketEnd = new Date(bucket.ending_at);
 
         for (const result of bucket.results) {
-          // Skip results with no model (shouldn't happen with group_by model)
-          if (!result.model) continue;
+          try {
+            // Skip results with no model (shouldn't happen with group_by model)
+            if (!result.model) continue;
 
-          const cacheWriteTokens =
-            (result.cache_creation?.ephemeral_5m_input_tokens ?? 0) +
-            (result.cache_creation?.ephemeral_1h_input_tokens ?? 0);
+            const cacheWriteTokens =
+              (result.cache_creation?.ephemeral_5m_input_tokens ?? 0) +
+              (result.cache_creation?.ephemeral_1h_input_tokens ?? 0);
 
-          allRows.push({
-            modelSlug: result.model,
-            serviceCategory: 'text_generation',
-            credentialExternalId: result.api_key_id ?? undefined,
-            segmentExternalId: result.workspace_id ?? undefined,
-            serviceTier: result.service_tier ?? undefined,
-            contextTier: result.context_window ?? undefined,
-            region: result.inference_geo ?? undefined,
-            bucketStart,
-            bucketEnd,
-            bucketWidth: '1d',
-            // Anthropic's uncached_input_tokens is already uncached — no deduction needed
-            inputTokens: result.uncached_input_tokens,
-            outputTokens: result.output_tokens,
-            thinkingTokens: result.thinking_tokens ?? 0,
-            cachedInputTokens: result.cache_read_input_tokens,
-            cacheWriteTokens,
-            searchCount: result.server_tool_use?.web_search_requests ?? 0,
-            requestCount: undefined, // Anthropic usage endpoint doesn't report request count
-          });
+            allRows.push({
+              modelSlug: result.model,
+              serviceCategory: 'text_generation',
+              credentialExternalId: result.api_key_id ?? undefined,
+              segmentExternalId: result.workspace_id ?? undefined,
+              serviceTier: result.service_tier ?? undefined,
+              contextTier: result.context_window ?? undefined,
+              region: result.inference_geo ?? undefined,
+              bucketStart,
+              bucketEnd,
+              bucketWidth: '1d',
+              // Anthropic's uncached_input_tokens is already uncached — no deduction needed
+              inputTokens: result.uncached_input_tokens ?? 0,
+              outputTokens: result.output_tokens ?? 0,
+              thinkingTokens: result.thinking_tokens ?? 0,
+              cachedInputTokens: result.cache_read_input_tokens ?? 0,
+              cacheWriteTokens,
+              searchCount: result.server_tool_use?.web_search_requests ?? 0,
+              requestCount: undefined, // Anthropic usage endpoint doesn't report request count
+            });
+          } catch (err) {
+            logger.warn('provider.fetch.usage.record.skip', {
+              provider: 'anthropic',
+              bucketStart: bucketStart.toISOString(),
+              model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
         }
       }
 
@@ -338,25 +347,35 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
         const bucketEnd = new Date(bucket.ending_at);
 
         for (const result of bucket.results) {
-          // Anthropic cost amounts are in lowest currency units (cents) as a
-          // decimal string. Convert to dollars: "12345" cents = $123.45
-          const amountCents = parseFloat(result.amount);
-          const amountDollars = (amountCents / 100).toFixed(8);
+          try {
+            // Anthropic cost amounts are in lowest currency units (cents) as a
+            // decimal string. Convert to dollars: "12345" cents = $123.45
+            const rawAmount = Number(result.amount ?? 0);
+            const amountDollars = (Number.isFinite(rawAmount) ? rawAmount / 100 : 0).toFixed(8);
 
-          allRows.push({
-            segmentExternalId: result.workspace_id ?? undefined,
-            modelSlug: result.model ?? undefined,
-            costType: result.cost_type ?? 'tokens',
-            tokenType: result.token_type ?? undefined,
-            serviceTier: result.service_tier ?? undefined,
-            contextTier: result.context_window ?? undefined,
-            region: result.inference_geo ?? undefined,
-            bucketStart,
-            bucketEnd,
-            amount: amountDollars,
-            currency: result.currency ?? 'USD',
-            description: result.description ?? undefined,
-          });
+            allRows.push({
+              segmentExternalId: result.workspace_id ?? undefined,
+              modelSlug: result.model ?? undefined,
+              costType: result.cost_type ?? 'tokens',
+              tokenType: result.token_type ?? undefined,
+              serviceTier: result.service_tier ?? undefined,
+              contextTier: result.context_window ?? undefined,
+              region: result.inference_geo ?? undefined,
+              bucketStart,
+              bucketEnd,
+              amount: amountDollars,
+              currency: result.currency ?? 'USD',
+              description: result.description ?? undefined,
+            });
+          } catch (err) {
+            logger.warn('provider.fetch.costs.record.skip', {
+              provider: 'anthropic',
+              bucketStart: bucketStart.toISOString(),
+              bucketEnd: bucketEnd.toISOString(),
+              workspaceId: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).workspace_id : undefined,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
         }
       }
 

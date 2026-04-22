@@ -137,62 +137,88 @@ export const makeSyncCursorRepository = (db: CostTrackingDatabase): ISyncCursorR
    * Uses a manual find-then-update-or-insert instead of onConflictDoUpdate
    * because PostgreSQL unique constraints treat NULL != NULL, so the conflict
    * clause never fires when credentialId is NULL, producing duplicate rows.
+   *
+   * A retry loop guards against the TOCTOU race: if a concurrent sync inserts
+   * the same cursor between our SELECT and INSERT, Postgres raises error 23505
+   * (unique_violation). On that error we retry — the next attempt finds the
+   * existing row and takes the update path instead.
    */
   async upsert(
     cursor: Omit<SyncCursor, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<SyncCursor> {
     const now = new Date();
+    const MAX_RETRIES = 3;
 
     const credentialCondition =
       cursor.credentialId !== undefined
         ? eq(costTrackingSyncCursors.credentialId, cursor.credentialId)
         : isNull(costTrackingSyncCursors.credentialId);
 
-    const existing = await db
-      .select()
-      .from(costTrackingSyncCursors)
-      .where(
-        and(
-          eq(costTrackingSyncCursors.providerId, cursor.providerId),
-          credentialCondition,
-          eq(costTrackingSyncCursors.serviceCategory, cursor.serviceCategory),
-        ),
-      )
-      .limit(1);
+    const whereCondition = and(
+      eq(costTrackingSyncCursors.providerId, cursor.providerId),
+      credentialCondition,
+      eq(costTrackingSyncCursors.serviceCategory, cursor.serviceCategory),
+    );
 
-    if (existing.length > 0) {
-      const [row] = await db
-        .update(costTrackingSyncCursors)
-        .set({
-          lastSyncedBucket: cursor.lastSyncedBucket,
-          lastPageToken: cursor.lastPageToken ?? null,
-          metadata: cursor.metadata ?? null,
-          updatedAt: now,
-        })
-        .where(eq(costTrackingSyncCursors.id, existing[0].id))
-        .returning();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const existing = await db
+          .select()
+          .from(costTrackingSyncCursors)
+          .where(whereCondition)
+          .limit(1);
 
-      return mapToSyncCursor(row);
+        if (existing.length > 0) {
+          const [row] = await db
+            .update(costTrackingSyncCursors)
+            .set({
+              lastSyncedBucket: cursor.lastSyncedBucket,
+              lastPageToken: cursor.lastPageToken ?? null,
+              metadata: cursor.metadata ?? null,
+              updatedAt: now,
+            })
+            .where(eq(costTrackingSyncCursors.id, existing[0].id))
+            .returning();
+
+          return mapToSyncCursor(row);
+        }
+
+        const id = createId();
+
+        const [row] = await db
+          .insert(costTrackingSyncCursors)
+          .values({
+            id,
+            providerId: cursor.providerId,
+            credentialId: cursor.credentialId ?? null,
+            serviceCategory: cursor.serviceCategory,
+            lastSyncedBucket: cursor.lastSyncedBucket,
+            lastPageToken: cursor.lastPageToken ?? null,
+            metadata: cursor.metadata ?? null,
+            updatedAt: now,
+            createdAt: now,
+          })
+          .returning();
+
+        return mapToSyncCursor(row);
+      } catch (err) {
+        // On constraint violation from a concurrent insert, retry.
+        // The next iteration will find the existing row and update it.
+        const isConstraintViolation =
+          err instanceof Error &&
+          (err.message.includes('unique constraint') ||
+            err.message.includes('duplicate key') ||
+            (err as unknown as Record<string, unknown>).code === '23505');
+
+        if (isConstraintViolation && attempt < MAX_RETRIES) {
+          continue;
+        }
+        throw err;
+      }
     }
 
-    const id = createId();
-
-    const [row] = await db
-      .insert(costTrackingSyncCursors)
-      .values({
-        id,
-        providerId: cursor.providerId,
-        credentialId: cursor.credentialId ?? null,
-        serviceCategory: cursor.serviceCategory,
-        lastSyncedBucket: cursor.lastSyncedBucket,
-        lastPageToken: cursor.lastPageToken ?? null,
-        metadata: cursor.metadata ?? null,
-        updatedAt: now,
-        createdAt: now,
-      })
-      .returning();
-
-    return mapToSyncCursor(row);
+    // Unreachable — the loop either returns or throws
+    throw new Error('SyncCursor upsert exhausted retries');
   },
 
   /**

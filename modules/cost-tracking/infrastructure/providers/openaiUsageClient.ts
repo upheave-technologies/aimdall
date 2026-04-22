@@ -274,30 +274,39 @@ function mapCompletionsBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      // OpenAI's input_tokens INCLUDES cached tokens. Deduct to get
-      // uncached-only, so cost calculation never double-counts.
-      const cachedInput = result.input_cached_tokens ?? 0;
-      const uncachedInput = result.input_tokens - cachedInput;
+      try {
+        // OpenAI's input_tokens INCLUDES cached tokens. Deduct to get
+        // uncached-only, so cost calculation never double-counts.
+        const cachedInput = result.input_cached_tokens ?? 0;
+        const uncachedInput = (result.input_tokens ?? 0) - cachedInput;
 
-      const reasoningTokens = result.reasoning_tokens ?? 0;
+        const reasoningTokens = result.reasoning_tokens ?? 0;
 
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'text_generation',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        inputTokens: uncachedInput,
-        // OpenAI's output_tokens includes reasoning tokens — deduct so the
-        // two metrics are mutually exclusive and cost calculation stays accurate.
-        outputTokens: result.output_tokens - reasoningTokens,
-        thinkingTokens: reasoningTokens,
-        cachedInputTokens: cachedInput,
-        cacheWriteTokens: 0,
-        requestCount: result.num_model_requests,
-      });
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'text_generation',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          inputTokens: uncachedInput,
+          // OpenAI's output_tokens includes reasoning tokens — deduct so the
+          // two metrics are mutually exclusive and cost calculation stays accurate.
+          outputTokens: (result.output_tokens ?? 0) - reasoningTokens,
+          thinkingTokens: reasoningTokens,
+          cachedInputTokens: cachedInput,
+          cacheWriteTokens: 0,
+          requestCount: result.num_model_requests ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'completions',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -311,17 +320,26 @@ function mapEmbeddingsBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'embedding',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        inputTokens: result.input_tokens,
-        requestCount: result.num_model_requests,
-      });
+      try {
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'embedding',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          inputTokens: result.input_tokens ?? 0,
+          requestCount: result.num_model_requests ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'embeddings',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -333,19 +351,28 @@ function mapImagesBuckets(buckets: OpenAIUsageBucket<ImagesResult>[]): RawProvid
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'image_generation',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        imageCount: result.num_images,
-        requestCount: result.num_model_requests,
-        providerMetadata:
-          result.image_size != null ? { imageSize: result.image_size } : undefined,
-      });
+      try {
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'image_generation',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          imageCount: result.num_images ?? 0,
+          requestCount: result.num_model_requests ?? 0,
+          providerMetadata:
+            result.image_size != null ? { imageSize: result.image_size } : undefined,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'images',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -359,17 +386,26 @@ function mapAudioSpeechesBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'audio_speech',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        characterCount: result.characters,
-        requestCount: result.num_model_requests,
-      });
+      try {
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'audio_speech',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          characterCount: result.characters ?? 0,
+          requestCount: result.num_model_requests ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'audio_speeches',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -383,17 +419,26 @@ function mapAudioTranscriptionsBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'audio_transcription',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        durationSeconds: result.seconds,
-        requestCount: result.num_model_requests,
-      });
+      try {
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'audio_transcription',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          durationSeconds: result.seconds ?? 0,
+          requestCount: result.num_model_requests ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'audio_transcriptions',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -407,17 +452,26 @@ function mapModerationsBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        modelSlug: result.model,
-        serviceCategory: 'moderation',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        inputTokens: result.input_tokens,
-        requestCount: result.num_model_requests,
-      });
+      try {
+        rows.push({
+          modelSlug: result.model,
+          serviceCategory: 'moderation',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          inputTokens: result.input_tokens ?? 0,
+          requestCount: result.num_model_requests ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'moderations',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -431,17 +485,26 @@ function mapCodeInterpreterBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        // model may be absent for code interpreter sessions
-        modelSlug: result.model ?? 'code-interpreter',
-        serviceCategory: 'code_execution',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1h',
-        sessionCount: result.num_sessions,
-      });
+      try {
+        rows.push({
+          // model may be absent for code interpreter sessions
+          modelSlug: result.model ?? 'code-interpreter',
+          serviceCategory: 'code_execution',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1h',
+          sessionCount: result.num_sessions ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'code_interpreter_sessions',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -456,17 +519,26 @@ function mapVectorStoresBuckets(
     const bucketStart = new Date(bucket.start_time * 1_000);
     const bucketEnd = new Date(bucket.end_time * 1_000);
     for (const result of bucket.results) {
-      rows.push({
-        // model may be absent for vector store usage
-        modelSlug: result.model ?? 'vector-store',
-        serviceCategory: 'vector_storage',
-        credentialExternalId: result.api_key_id,
-        segmentExternalId: result.project_id ?? undefined,
-        bucketStart,
-        bucketEnd,
-        bucketWidth: '1d',
-        storageBytes: result.usage_bytes,
-      });
+      try {
+        rows.push({
+          // model may be absent for vector store usage
+          modelSlug: result.model ?? 'vector-store',
+          serviceCategory: 'vector_storage',
+          credentialExternalId: result.api_key_id,
+          segmentExternalId: result.project_id ?? undefined,
+          bucketStart,
+          bucketEnd,
+          bucketWidth: '1d',
+          storageBytes: result.usage_bytes ?? 0,
+        });
+      } catch (err) {
+        logger.warn('provider.fetch.usage.record.skip', {
+          provider: 'openai',
+          category: 'vector_stores',
+          model: typeof result === 'object' && result !== null ? (result as Record<string, unknown>).model : 'unknown',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
   return rows;
@@ -477,6 +549,15 @@ function mapVectorStoresBuckets(
 // =============================================================================
 
 const OPENAI_BASE = 'https://api.openai.com/v1/organization/usage';
+
+/**
+ * Aggregate timeout budget for the full multi-endpoint fetch cycle.
+ * 8 endpoints × potential pagination × 30s per-request timeout could easily
+ * exceed a 120s API route maxDuration. This budget caps the total fetch time
+ * and returns partial results when exceeded, leaving 30s margin for use case
+ * overhead.
+ */
+const FETCH_BUDGET_MS = 90_000;
 
 /**
  * Factory function that creates an OpenAI provider usage client.
@@ -501,6 +582,7 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     const startUnix = Math.floor(startTime.getTime() / 1_000);
     const endUnix = Math.floor(endTime.getTime() / 1_000);
     const fetchStart = Date.now();
+    const deadline = fetchStart + FETCH_BUDGET_MS;
     const allRows: RawProviderUsageData[] = [];
 
     logger.info('provider.fetch.start', {
@@ -510,8 +592,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     });
 
     // -------------------------------------------------------------------------
-    // completions — text_generation
+    // completions — text_generation  [category 1 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 0,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', { provider: 'openai', category: 'completions' });
     {
       const { buckets, pageCount } = await fetchOpenAIPaginatedUsage<CompletionsResult>(
@@ -534,8 +625,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // embeddings — embedding
+    // embeddings — embedding  [category 2 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 1,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', { provider: 'openai', category: 'embeddings' });
     {
       const { buckets, pageCount } = await fetchOpenAIPaginatedUsage<EmbeddingsResult>(
@@ -558,8 +658,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // images — image_generation
+    // images — image_generation  [category 3 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 2,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', { provider: 'openai', category: 'images' });
     {
       const { buckets, pageCount } = await fetchOpenAIPaginatedUsage<ImagesResult>(
@@ -582,8 +691,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // audio_speeches — audio_speech
+    // audio_speeches — audio_speech  [category 4 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 3,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', {
       provider: 'openai',
       category: 'audio_speeches',
@@ -609,8 +727,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // audio_transcriptions — audio_transcription
+    // audio_transcriptions — audio_transcription  [category 5 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 4,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', {
       provider: 'openai',
       category: 'audio_transcriptions',
@@ -636,8 +763,17 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // moderations — moderation
+    // moderations — moderation  [category 6 / 8]
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 5,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', { provider: 'openai', category: 'moderations' });
     {
       const { buckets, pageCount } = await fetchOpenAIPaginatedUsage<ModerationsResult>(
@@ -660,9 +796,18 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // code_interpreter_sessions — code_execution
+    // code_interpreter_sessions — code_execution  [category 7 / 8]
     // group_by excludes 'model' — this endpoint may not support it
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 6,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', {
       provider: 'openai',
       category: 'code_interpreter_sessions',
@@ -688,10 +833,19 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     }
 
     // -------------------------------------------------------------------------
-    // vector_stores — vector_storage
+    // vector_stores — vector_storage  [category 8 / 8]
     // Uses daily bucket width — storage is a point-in-time measurement.
     // group_by excludes 'model' — this endpoint does not support it.
     // -------------------------------------------------------------------------
+    if (Date.now() >= deadline) {
+      logger.warn('provider.fetch.deadline_exceeded', {
+        provider: 'openai',
+        completedCategories: 7,
+        totalRecords: allRows.length,
+        elapsedMs: Date.now() - fetchStart,
+      });
+      return allRows;
+    }
     logger.info('provider.fetch.category.start', {
       provider: 'openai',
       category: 'vector_stores',
@@ -758,15 +912,26 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
       const bucketStart = new Date(bucket.start_time * 1_000);
       const bucketEnd = new Date(bucket.end_time * 1_000);
       for (const result of bucket.results) {
-        allRows.push({
-          segmentExternalId: result.project_id ?? undefined,
-          modelSlug: undefined,
-          costType: result.line_item ?? 'total',
-          bucketStart,
-          bucketEnd,
-          amount: result.amount.value.toFixed(8),
-          currency: result.amount.currency,
-        });
+        try {
+          allRows.push({
+            segmentExternalId: result.project_id ?? undefined,
+            modelSlug: undefined,
+            costType: result.line_item ?? 'total',
+            bucketStart,
+            bucketEnd,
+            amount: Number(result.amount.value ?? 0).toFixed(8),
+            currency: result.amount.currency,
+          });
+        } catch (err) {
+          logger.warn('provider.fetch.costs.record.skip', {
+            provider: 'openai',
+            bucketStart: bucketStart.toISOString(),
+            bucketEnd: bucketEnd.toISOString(),
+            projectId: result.project_id,
+            lineItem: result.line_item,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     }
 

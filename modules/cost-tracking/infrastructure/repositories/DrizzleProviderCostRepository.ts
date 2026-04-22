@@ -92,13 +92,13 @@ export const makeProviderCostRepository = (db: CostTrackingDatabase): IProviderC
         })
         .returning({
           id: costTrackingProviderCosts.id,
-          createdAt: costTrackingProviderCosts.createdAt,
+          wasInserted: sql<boolean>`(xmax = 0)`,
         });
 
-      const batchTime = Date.now();
+      // xmax = 0 means the row was freshly inserted (no prior version existed in
+      // the heap). xmax != 0 means an existing row was updated in place.
       for (const row of result) {
-        const age = batchTime - row.createdAt.getTime();
-        if (age < 5_000) {
+        if (row.wasInserted) {
           created++;
         } else {
           updated++;

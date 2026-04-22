@@ -156,14 +156,15 @@ export const makeUsageRecordRepository = (db: CostTrackingDatabase): IUsageRecor
             updatedAt: sql`excluded.updated_at`,
           },
         })
-        .returning({ id: costTrackingUsageRecords.id, createdAt: costTrackingUsageRecords.createdAt });
+        .returning({
+          id: costTrackingUsageRecords.id,
+          wasInserted: sql<boolean>`(xmax = 0)`,
+        });
 
-      // Rows returned with createdAt matching NOW() were just inserted;
-      // others were updated. We use a 1-second window as a heuristic.
-      const batchTime = Date.now();
+      // xmax = 0 means the row was freshly inserted (no prior version existed in
+      // the heap). xmax != 0 means an existing row was updated in place.
       for (const row of result) {
-        const age = batchTime - row.createdAt.getTime();
-        if (age < 5_000) {
+        if (row.wasInserted) {
           created++;
         } else {
           updated++;
