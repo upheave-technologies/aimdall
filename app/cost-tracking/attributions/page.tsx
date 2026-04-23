@@ -16,14 +16,19 @@ import type {
 } from '@/modules/cost-tracking/domain/types';
 import {
   createGroupAction,
+  updateGroupAction,
   deleteGroupAction,
   createRuleAction,
   deleteRuleAction,
   runMigrationAction,
   applyTemplateAction,
+  previewRuleAction,
   dismissSuggestionAction,
+  applySuggestionAction,
+  assignCredentialAction,
 } from './actions';
 import { AttributionsView } from './_components/AttributionsView';
+import { AttributionDashboard } from './_components/AttributionDashboard';
 import { AttributionsErrorView } from './_components/AttributionsErrorView';
 
 // =============================================================================
@@ -69,6 +74,26 @@ async function dismissSuggestionFormAction(formData: FormData): Promise<void> {
   await dismissSuggestionAction(formData);
 }
 
+async function updateGroupFormAction(formData: FormData): Promise<void> {
+  'use server';
+  await updateGroupAction(formData);
+}
+
+async function applySuggestionFormAction(formData: FormData): Promise<void> {
+  'use server';
+  await applySuggestionAction(formData);
+}
+
+async function assignCredentialFormAction(formData: FormData): Promise<void> {
+  'use server';
+  await assignCredentialAction(formData);
+}
+
+async function previewRuleFormAction(formData: FormData): Promise<void> {
+  'use server';
+  await previewRuleAction(formData);
+}
+
 // =============================================================================
 // PAGE
 // =============================================================================
@@ -78,11 +103,11 @@ export default async function AttributionsPage() {
   // 1. PARALLEL DATA FETCHING
   // ---------------------------------------------------------------------------
   const [summaryResult, groupsResult, usersResult, credentialsResult, coverageResult, suggestionsResult] = await Promise.all([
-    getAttributionSummary({}),
+    getAttributionSummary({ startDate: new Date(0) }),
     listAttributionGroups({}),
     listUsers(),
     listCredentials(),
-    getAttributionCoverage({}),
+    getAttributionCoverage({ startDate: new Date(0) }),
     getAutoDiscoverySuggestions({}),
   ]);
 
@@ -137,7 +162,7 @@ export default async function AttributionsPage() {
   // 5. DELEGATE RENDERING
   // ---------------------------------------------------------------------------
   return (
-    <AttributionsView
+    <AttributionDashboard
       summaryRows={sortedSummary}
       groups={groups}
       rulesMap={rulesMap}
@@ -146,12 +171,16 @@ export default async function AttributionsPage() {
       coverage={coverage}
       suggestions={suggestions}
       createGroupAction={createGroupFormAction}
+      updateGroupAction={updateGroupFormAction}
       deleteGroupAction={deleteGroupFormAction}
       createRuleAction={createRuleFormAction}
       deleteRuleAction={deleteRuleFormAction}
       runMigrationAction={runMigrationFormAction}
       applyTemplateAction={applyTemplateFormAction}
+      previewRuleAction={previewRuleFormAction}
       dismissSuggestionAction={dismissSuggestionFormAction}
+      applySuggestionAction={applySuggestionFormAction}
+      assignCredentialAction={assignCredentialFormAction}
     />
   );
 }
