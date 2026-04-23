@@ -2,7 +2,7 @@
 
 - **Feature ID:** 4
 - **Module:** cost-tracking
-- **Status:** Draft
+- **Status:** Done
 - **Created:** 2026-04-21
 
 ---
