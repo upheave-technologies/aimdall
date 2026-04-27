@@ -120,4 +120,10 @@ export type ProviderUsageClient = {
    * @returns Flat array of raw cost rows. Returns [] on API failure.
    */
   fetchCosts?: (startTime: Date, endTime: Date) => Promise<RawProviderCostData[]>;
+
+  /**
+   * Test the credential by making a lightweight API call.
+   * Returns a structured result with a human-readable detail on success.
+   */
+  testConnection?: () => Promise<{ success: true; detail?: string } | { success: false; error: string }>;
 };

@@ -60,6 +60,14 @@ function RecommendationsIcon() {
   );
 }
 
+function ProvidersIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -67,7 +75,7 @@ function RecommendationsIcon() {
 export type NavItem = {
   href: string;
   label: string;
-  icon: 'overview' | 'explorer' | 'attribution' | 'budget' | 'alerts' | 'report' | 'recommendations';
+  icon: 'overview' | 'explorer' | 'attribution' | 'budget' | 'alerts' | 'report' | 'recommendations' | 'providers';
   active: boolean;
 };
 
@@ -95,6 +103,8 @@ function NavIcon({ name }: { name: NavItem['icon'] }) {
       return <ReportIcon />;
     case 'recommendations':
       return <RecommendationsIcon />;
+    case 'providers':
+      return <ProvidersIcon />;
   }
 }
 

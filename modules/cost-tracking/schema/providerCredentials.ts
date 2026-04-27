@@ -11,8 +11,9 @@
 //
 // Design decisions:
 //   - external_id is the provider's own identifier for this credential (e.g.,
-//     apikey_01Rj2N8SVvo6BePZj99NhmiT for Anthropic). We never store the
-//     actual secret — only the provider's public reference.
+//     apikey_01Rj2N8SVvo6BePZj99NhmiT for Anthropic).
+//   - encrypted_secret holds the AES-256-GCM encrypted API key when the user
+//     stores one via the UI. Env-var-sourced credentials leave this NULL.
 //   - key_hint stores the last 4 characters for display purposes only.
 //   - segment_id is nullable because some credentials are account-wide
 //     (not scoped to a specific workspace/project).
@@ -66,6 +67,10 @@ export const costTrackingProviderCredentials = pgTable(
 
     // Provider-specific attributes
     metadata: jsonb('metadata'),
+
+    // AES-256-GCM encrypted API key in format: iv:authTag:ciphertext (hex-encoded).
+    // Nullable: env-var-sourced credentials and legacy rows have no stored secret.
+    encryptedSecret: text('encrypted_secret'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 

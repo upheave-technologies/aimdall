@@ -3,6 +3,7 @@ import { getSpendForecast } from '@/modules/cost-tracking/application/getSpendFo
 import { getUnassignedSpend } from '@/modules/cost-tracking/application/getUnassignedSpendUseCase';
 import { detectSpendAnomalies } from '@/modules/cost-tracking/application/detectSpendAnomaliesUseCase';
 import { getBudgetStatus } from '@/modules/cost-tracking/application/getBudgetStatusUseCase';
+import { listProviderStatus } from '@/modules/cost-tracking/application/listProviderStatusUseCase';
 import { DashboardView } from './_components/DashboardView';
 import type {
   DashboardSummary,
@@ -31,7 +32,7 @@ export default async function CostTrackingPage({
   const now = new Date();
   const mtdStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  const [summaryResult, mtdSummaryResult, forecastResult, unassignedResult, anomaliesResult, budgetsResult] =
+  const [summaryResult, mtdSummaryResult, forecastResult, unassignedResult, anomaliesResult, budgetsResult, providerStatusResult] =
     await Promise.all([
       getUsageSummary({ startDate, endDate }),
       getUsageSummary({ startDate: mtdStart }), // MTD — always current month, no filter
@@ -39,6 +40,7 @@ export default async function CostTrackingPage({
       getUnassignedSpend({}),
       detectSpendAnomalies({}),
       getBudgetStatus({}),
+      listProviderStatus(),
     ]);
 
   if (!summaryResult.success) {
@@ -67,6 +69,10 @@ export default async function CostTrackingPage({
     ? budgetsResult.value
     : EMPTY_BUDGETS;
 
+  const hasProviders = providerStatusResult.success
+    ? providerStatusResult.value.some((p) => p.connected)
+    : false;
+
   return (
     <DashboardView
       summary={summary}
@@ -77,6 +83,7 @@ export default async function CostTrackingPage({
       mtdSummary={mtdSummary}
       hasFilter={!!(params.from || params.to)}
       filterLabel={params.from && params.to ? `${params.from} – ${params.to}` : params.from ? `From ${params.from}` : params.to ? `Until ${params.to}` : null}
+      hasProviders={hasProviders}
     />
   );
 }

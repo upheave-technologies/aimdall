@@ -385,4 +385,73 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
 
     return allRows;
   },
+
+  /**
+   * Test the Anthropic Admin API key by making a minimal usage query against
+   * the usage endpoint we actually use. Returns a structured result — never throws.
+   */
+  async testConnection(): Promise<{ success: true; detail?: string } | { success: false; error: string }> {
+    logger.info('provider.test_connection.start', { provider: 'anthropic' });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60_000);
+      const params = new URLSearchParams({
+        starting_at: oneMinuteAgo.toISOString(),
+        ending_at: now.toISOString(),
+        limit: '1',
+      });
+
+      const response = await fetch(
+        `https://api.anthropic.com/v1/organizations/usage_report/messages?${params.toString()}`,
+        {
+          headers: {
+            'x-api-key': adminApiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      );
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const detail = 'Anthropic usage data is accessible';
+        logger.info('provider.test_connection.success', { provider: 'anthropic', detail });
+        return { success: true, detail };
+      }
+
+      if (response.status === 401) {
+        logger.warn('provider.test_connection.failed', { provider: 'anthropic', status: 401 });
+        return { success: false, error: 'Invalid Admin API key. Keys start with sk-ant-admin-...' };
+      }
+
+      if (response.status === 403) {
+        logger.warn('provider.test_connection.failed', { provider: 'anthropic', status: 403 });
+        return {
+          success: false,
+          error: 'This key lacks admin permissions. Create an Admin API key in the Anthropic console.',
+        };
+      }
+
+      const body = await response.text().catch(() => '');
+      logger.warn('provider.test_connection.failed', {
+        provider: 'anthropic',
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      return { success: false, error: `Anthropic API returned status ${response.status}.` };
+    } catch (networkError) {
+      clearTimeout(timeoutId);
+      logger.error('provider.test_connection.network_error', {
+        provider: 'anthropic',
+        error: networkError instanceof Error ? networkError.message : String(networkError),
+      });
+      return { success: false, error: 'Could not reach Anthropic API. Check your network connection.' };
+    }
+  },
 });

@@ -11,7 +11,8 @@
 //
 // Design decisions:
 //   - externalId is the provider's own public reference for this credential.
-//     The actual secret is never stored.
+//   - encryptedSecret holds the AES-256-GCM encrypted API key when the user
+//     stores one via the UI. Env-var-sourced credentials leave this unset.
 //   - keyHint stores the last 4 characters for display purposes only.
 //   - deletedAt uses undefined (not null) at the domain level.
 // =============================================================================
@@ -46,6 +47,7 @@ export type ProviderCredential = {
   lastUsedAt?: Date;
   lastSyncAt?: Date;
   metadata?: Record<string, unknown>;
+  encryptedSecret?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

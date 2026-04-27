@@ -57,6 +57,7 @@ import { makeSyncLogRepository, makeSyncCursorRepository } from '../infrastructu
 import { makeProviderRepository, makeProviderCredentialRepository, makeModelRepository } from '../infrastructure/repositories/DrizzleProviderRepository';
 import { generateDedupKey } from '../infrastructure/dedupKeyHasher';
 import { buildProviderClients, ProviderClientConfig } from '../infrastructure/providers/buildProviderClients';
+import { buildProviderClientsFromDb } from '../infrastructure/providers/buildProviderClientsFromDb';
 import { db } from '@/lib/db';
 
 // =============================================================================
@@ -665,5 +666,25 @@ export const syncProviderUsageFromEnv = () => {
     geminiApiKey: process.env.GOOGLE_GEMINI_API_KEY,
   };
   const clients = buildProviderClients(config);
+  return { clients, sync: makeSyncProviderUsageUseCase(syncDeps, clients) };
+};
+
+/**
+ * Pre-wired sync use case that reads provider credentials from the database.
+ * Decrypts each stored credential using ENCRYPTION_KEY and constructs clients.
+ *
+ * Throws if ENCRYPTION_KEY is not set — callers should wrap in try/catch and
+ * fall back to env-var-only behaviour.
+ *
+ * Usage:
+ *   import { syncProviderUsageFromDb } from '.../syncProviderUsageUseCase';
+ *   const { clients, sync } = await syncProviderUsageFromDb();
+ *   const result = await sync({ startTime, endTime });
+ */
+export const syncProviderUsageFromDb = async () => {
+  const clients = await buildProviderClientsFromDb(
+    makeProviderRepository(db),
+    makeProviderCredentialRepository(db),
+  );
   return { clients, sync: makeSyncProviderUsageUseCase(syncDeps, clients) };
 };

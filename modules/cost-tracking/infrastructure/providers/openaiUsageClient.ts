@@ -944,4 +944,67 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
 
     return allRows;
   },
+
+  /**
+   * Test the OpenAI API key by making a lightweight request to the models
+   * endpoint. Returns a structured result — never throws.
+   */
+  async testConnection(): Promise<{ success: true; detail?: string } | { success: false; error: string }> {
+    logger.info('provider.test_connection.start', { provider: 'openai' });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      // Use an actual organization endpoint to validate the admin key.
+      // The /v1/models endpoint rejects org admin keys (sk-admin-...) with 403.
+      const now = Math.floor(Date.now() / 1000);
+      const oneMinuteAgo = now - 60;
+      const response = await fetch(
+        `https://api.openai.com/v1/organization/usage/completions?start_time=${oneMinuteAgo}&end_time=${now}&limit=1`,
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      );
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        logger.info('provider.test_connection.success', { provider: 'openai' });
+        return { success: true, detail: 'OpenAI usage data is accessible' };
+      }
+
+      if (response.status === 401) {
+        logger.warn('provider.test_connection.failed', { provider: 'openai', status: 401 });
+        return { success: false, error: 'Invalid API key. Check that you copied the full key.' };
+      }
+
+      if (response.status === 403) {
+        logger.warn('provider.test_connection.failed', { provider: 'openai', status: 403 });
+        return {
+          success: false,
+          error: 'This key cannot access organization usage data. Create an admin key at platform.openai.com/settings/organization/admin-keys with the "Usage: Read" permission.',
+        };
+      }
+
+      const body = await response.text().catch(() => '');
+      logger.warn('provider.test_connection.failed', {
+        provider: 'openai',
+        status: response.status,
+        body: body.slice(0, 200),
+      });
+      return { success: false, error: `OpenAI API returned status ${response.status}.` };
+    } catch (networkError) {
+      clearTimeout(timeoutId);
+      logger.error('provider.test_connection.network_error', {
+        provider: 'openai',
+        error: networkError instanceof Error ? networkError.message : String(networkError),
+      });
+      return { success: false, error: 'Could not reach OpenAI API. Check your network connection.' };
+    }
+  },
 });

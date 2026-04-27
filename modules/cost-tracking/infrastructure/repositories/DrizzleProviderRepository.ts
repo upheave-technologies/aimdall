@@ -233,6 +233,7 @@ export const makeProviderCredentialRepository = (
       lastUsedAt: credential.lastUsedAt ?? null,
       lastSyncAt: credential.lastSyncAt ?? null,
       metadata: credential.metadata ?? null,
+      encryptedSecret: credential.encryptedSecret ?? null,
       createdAt: credential.createdAt,
       updatedAt: credential.updatedAt,
       deletedAt: credential.deletedAt ?? null,
@@ -252,6 +253,7 @@ export const makeProviderCredentialRepository = (
         lastUsedAt: credential.lastUsedAt ?? null,
         lastSyncAt: credential.lastSyncAt ?? null,
         metadata: credential.metadata ?? null,
+        encryptedSecret: credential.encryptedSecret ?? null,
         updatedAt: credential.updatedAt,
         deletedAt: credential.deletedAt ?? null,
       })
@@ -401,6 +403,7 @@ function mapToCredential(
     lastUsedAt: row.lastUsedAt ?? undefined,
     lastSyncAt: row.lastSyncAt ?? undefined,
     metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
+    encryptedSecret: row.encryptedSecret ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? undefined,

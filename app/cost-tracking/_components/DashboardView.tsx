@@ -99,6 +99,7 @@ export type DashboardViewProps = {
   unassignedSpend: DashboardUnassignedSpend;
   anomalies: DashboardAnomalies;
   budgets: DashboardBudgets;
+  hasProviders: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -202,54 +203,72 @@ function SeverityBadge({ severity }: { severity: 'critical' | 'high' | 'medium' 
 
 function EmptyState() {
   return (
-    <main className="mx-auto max-w-4xl px-8 py-16">
+    <main className="mx-auto max-w-3xl px-8 py-16">
+      {/* Hero section */}
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/5">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/5">
           <svg className="h-8 w-8 text-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Your AI costs, unified.</h1>
         <p className="mx-auto mt-3 max-w-lg text-base text-foreground/50">
-          Connect your LLM providers to start tracking spend across OpenAI, Anthropic, and Google — from a single dashboard.
+          Connect your LLM providers to start tracking spend across OpenAI, Anthropic, and Google — all from a single dashboard.
         </p>
+        <Link
+          href="/cost-tracking/providers"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+        >
+          Connect your first provider
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </Link>
       </div>
 
-      {/* Provider connection cards */}
-      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-foreground/8 bg-foreground/[0.02] p-5">
-          <div className="mb-3 text-sm font-semibold">OpenAI</div>
-          <p className="text-xs text-foreground/50 leading-relaxed">Set the following environment variable in your deployment:</p>
-          <code className="mt-2 block rounded-lg bg-foreground/6 px-3 py-2 text-xs font-mono text-foreground/70">
-            OPENAI_USAGE_API_KEY
-          </code>
+      {/* How it works */}
+      <div className="mt-16">
+        <div className="mb-6 text-center text-xs font-medium uppercase tracking-widest text-foreground/30">
+          How it works
         </div>
-        <div className="rounded-2xl border border-foreground/8 bg-foreground/[0.02] p-5">
-          <div className="mb-3 text-sm font-semibold">Anthropic</div>
-          <p className="text-xs text-foreground/50 leading-relaxed">Set the following environment variable in your deployment:</p>
-          <code className="mt-2 block rounded-lg bg-foreground/6 px-3 py-2 text-xs font-mono text-foreground/70">
-            ANTHROPIC_ADMIN_API_KEY
-          </code>
-        </div>
-        <div className="rounded-2xl border border-foreground/8 bg-foreground/[0.02] p-5">
-          <div className="mb-3 text-sm font-semibold">Google Vertex</div>
-          <p className="text-xs text-foreground/50 leading-relaxed">Set the following environment variable in your deployment:</p>
-          <code className="mt-2 block rounded-lg bg-foreground/6 px-3 py-2 text-xs font-mono text-foreground/70">
-            GOOGLE_CLOUD_PROJECT_ID
-          </code>
+        <div className="grid grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-sm font-bold">
+              1
+            </div>
+            <div className="text-sm font-medium">Choose your provider</div>
+            <p className="mt-1 text-xs text-foreground/40">Pick from OpenAI, Anthropic, or Google Cloud</p>
+          </div>
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-sm font-bold">
+              2
+            </div>
+            <div className="text-sm font-medium">Paste your API key</div>
+            <p className="mt-1 text-xs text-foreground/40">We test the connection instantly</p>
+          </div>
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-sm font-bold">
+              3
+            </div>
+            <div className="text-sm font-medium">See your costs</div>
+            <p className="mt-1 text-xs text-foreground/40">Historical data syncs automatically</p>
+          </div>
         </div>
       </div>
 
-      {/* Sync note */}
-      <div className="mt-6 rounded-2xl border border-foreground/8 bg-foreground/[0.02] p-5">
-        <div className="text-sm font-semibold">After adding environment variables</div>
-        <p className="mt-1 text-xs text-foreground/50 leading-relaxed">
-          Trigger a data sync by calling <code className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-foreground/70">POST /api/cost-tracking/sync</code> or use the Sync button that will appear in this dashboard once providers are detected.
-        </p>
+      {/* Supported providers */}
+      <div className="mt-12 flex items-center justify-center gap-8">
+        <span className="text-sm text-foreground/30">OpenAI</span>
+        <span className="h-3 w-px bg-foreground/10" />
+        <span className="text-sm text-foreground/30">Anthropic</span>
+        <span className="h-3 w-px bg-foreground/10" />
+        <span className="text-sm text-foreground/30">Google Vertex AI</span>
+        <span className="h-3 w-px bg-foreground/10" />
+        <span className="text-sm text-foreground/30">Google Gemini</span>
       </div>
 
       {/* Preview cards */}
-      <div className="mt-12">
+      <div className="mt-16">
         <div className="mb-4 text-xs font-medium uppercase tracking-widest text-foreground/30">
           What you will see
         </div>
@@ -271,7 +290,7 @@ function EmptyState() {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, anomalies, budgets }: DashboardViewProps) {
+export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, anomalies, budgets, hasProviders }: DashboardViewProps) {
   // Compute totals
   const mtdSpend = mtdSummary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
   const filteredSpend = summary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
@@ -352,6 +371,32 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
 
   return (
     <main className="mx-auto max-w-7xl px-8 py-8">
+      {/* ----------------------------------------------------------------- */}
+      {/* No-providers CTA                                                   */}
+      {/* ----------------------------------------------------------------- */}
+      {!hasProviders && (
+        <div className="mb-8 rounded-xl border-2 border-dashed border-foreground/15 bg-foreground/[0.02] p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5">
+            <svg className="h-6 w-6 text-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold">Connect your first AI provider</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-foreground/50">
+            Start tracking costs in under 5 minutes. Connect OpenAI, Anthropic, or Google Cloud to see where your AI spend is going.
+          </p>
+          <a
+            href="/cost-tracking/providers"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+          >
+            Set Up Providers
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+        </div>
+      )}
+
       {/* ----------------------------------------------------------------- */}
       {/* Header                                                             */}
       {/* ----------------------------------------------------------------- */}

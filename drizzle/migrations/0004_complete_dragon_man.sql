@@ -1,0 +1,1 @@
+ALTER TABLE "cost_tracking_provider_credentials" ADD COLUMN "encrypted_secret" text;

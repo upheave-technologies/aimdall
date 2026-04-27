@@ -300,6 +300,84 @@ export const makeGeminiUsageClient = (config: GeminiUsageClientConfig): Provider
 
     return buildRows(accumulator, projectId, fetchStart);
   },
+
+  /**
+   * Test GCP Application Default Credentials by making a lightweight
+   * listTimeSeries call against the Gemini project. Returns a structured
+   * result — never throws.
+   */
+  async testConnection(): Promise<{ success: true; detail?: string } | { success: false; error: string }> {
+    const { projectId } = config;
+    logger.info('provider.test_connection.start', { provider: 'google_gemini', projectId });
+
+    const client = new MetricServiceClient();
+    const projectName = `projects/${projectId}`;
+
+    // Use a 5-minute window ending now so the query is as light as possible.
+    const endTime = Date.now();
+    const startTime = endTime - 5 * 60 * 1_000;
+
+    // Wrap in a race against a manual timeout promise.
+    const timeoutMs = 10_000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), timeoutMs),
+    );
+
+    try {
+      await Promise.race([
+        client.listTimeSeries({
+          name: projectName,
+          filter: `metric.type = "${TOKEN_COUNT_METRIC}"`,
+          interval: {
+            startTime: { seconds: Math.floor(startTime / 1_000) },
+            endTime: { seconds: Math.floor(endTime / 1_000) },
+          },
+          aggregation: {
+            alignmentPeriod: { seconds: ALIGNMENT_PERIOD_SECONDS },
+            perSeriesAligner: 'ALIGN_SUM',
+            crossSeriesReducer: 'REDUCE_NONE',
+          },
+          view: 'FULL',
+          pageSize: 1,
+        }),
+        timeoutPromise,
+      ]);
+
+      logger.info('provider.test_connection.success', { provider: 'google_gemini', projectId });
+      return { success: true, detail: `Gemini metrics accessible for project: ${projectId}` };
+    } catch (error) {
+      const err = error as { code?: number; message?: string };
+      const code = err.code;
+      const message = err.message ?? String(error);
+
+      logger.warn('provider.test_connection.failed', {
+        provider: 'google_gemini',
+        projectId,
+        code,
+        error: message,
+      });
+
+      if (code === 5) {
+        return {
+          success: false,
+          error: `Project "${projectId}" not found. Check the project ID in your Google Cloud Console.`,
+        };
+      }
+      if (code === 7) {
+        return {
+          success: false,
+          error: 'Permission denied. Ensure Application Default Credentials have the Monitoring Viewer role.',
+        };
+      }
+      if (code === 16) {
+        return {
+          success: false,
+          error: 'Not authenticated. Set up Application Default Credentials (run: gcloud auth application-default login).',
+        };
+      }
+      return { success: false, error: `Could not connect to Google Cloud: ${message}` };
+    }
+  },
 });
 
 // =============================================================================

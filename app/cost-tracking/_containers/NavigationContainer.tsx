@@ -9,6 +9,7 @@ import { NavigationView, type NavItem } from '../_components/NavigationView';
 
 const NAV_CONFIG: Omit<NavItem, 'active'>[] = [
   { href: '/cost-tracking', label: 'Overview', icon: 'overview' },
+  { href: '/cost-tracking/providers', label: 'Providers', icon: 'providers' },
   { href: '/cost-tracking/explore', label: 'Explorer', icon: 'explorer' },
   { href: '/cost-tracking/recommendations', label: 'Recommendations', icon: 'recommendations' },
   { href: '/cost-tracking/attributions', label: 'Attribution', icon: 'attribution' },
