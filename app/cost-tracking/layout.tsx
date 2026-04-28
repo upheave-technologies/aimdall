@@ -8,7 +8,7 @@ export default function CostTrackingLayout({
 }) {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen">
+      <div className="flex h-screen">
         <NavigationContainer />
         <div className="flex-1 overflow-auto">
           {children}
