@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Outer ring — the watchful eye / radar sweep -->
+  <circle cx="16" cy="16" r="14" stroke="#F59E0B" stroke-width="2.5" fill="none"/>
+
+  <!-- Inner iris ring -->
+  <circle cx="16" cy="16" r="8" stroke="#F59E0B" stroke-width="1.5" fill="none" opacity="0.6"/>
+
+  <!-- Crosshair arms — cardinal ticks touching outer ring -->
+  <line x1="16" y1="2" x2="16" y2="7"  stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16" y1="25" x2="16" y2="30" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+  <line x1="2"  y1="16" x2="7"  y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+  <line x1="25" y1="16" x2="30" y2="16" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Centre pupil — solid amber dot -->
+  <circle cx="16" cy="16" r="3" fill="#F59E0B"/>
+
+  <!-- Micro upward-trend spark: three ascending bars at bottom-right quadrant -->
+  <rect x="19" y="21" width="2" height="4" rx="0.5" fill="#FCD34D" opacity="0.85"/>
+  <rect x="22" y="19" width="2" height="6" rx="0.5" fill="#FCD34D" opacity="0.85"/>
+  <rect x="25" y="17" width="2" height="8" rx="0.5" fill="#FCD34D" opacity="0.85"/>
+</svg>
