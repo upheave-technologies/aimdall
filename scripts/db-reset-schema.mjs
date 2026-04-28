@@ -25,7 +25,11 @@ if (!url) {
 }
 
 const pool = new pg.Pool({ connectionString: url });
+// Drop the drizzle migrations journal first so a partial failure leaves a
+// recognizable state (data tables may still exist, but the journal is gone —
+// re-running the reset will then wipe data and we end up clean).
+await pool.query('DROP SCHEMA IF EXISTS drizzle CASCADE');
 await pool.query('DROP SCHEMA public CASCADE');
 await pool.query('CREATE SCHEMA public');
-console.log('Database schema reset successfully');
+console.log('Database schemas (public + drizzle) reset successfully');
 await pool.end();
