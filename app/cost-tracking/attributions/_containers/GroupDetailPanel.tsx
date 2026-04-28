@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GroupDetailView } from '../_components/GroupDetailView';
 import { RuleBuilder } from './RuleBuilder';
-import { useToast } from './ToastProvider';
+import { useToast } from '../../_containers/ToastProvider';
 import { previewRuleAction } from '../actions';
 import type {
   AttributionGroup,

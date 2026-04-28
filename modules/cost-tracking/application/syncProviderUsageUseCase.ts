@@ -104,11 +104,17 @@ export type SyncDeps = {
 // =============================================================================
 
 /**
- * Default lookback window used when no sync cursor exists for a provider
- * (e.g. first sync, or cursor was lost). 30 days is safe because all upserts
- * are idempotent via the dedup key — duplicate records are never created.
+ * Fallback lookback window when no sync cursor exists AND the provider client
+ * does not declare a firstSyncLookbackMs. 30 days is a safe, conservative
+ * baseline. All upserts are idempotent via the dedup key — duplicate records
+ * are never created regardless of how far back we pull.
+ *
+ * Provider clients should declare their own firstSyncLookbackMs based on the
+ * historical retention their API actually supports. The use case picks that
+ * value on first sync so users get the richest possible historical view from
+ * minute one.
  */
-const DEFAULT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1_000; // 30 days
+const FALLBACK_FIRST_SYNC_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1_000; // 30 days
 
 // =============================================================================
 // SECTION 2: USE CASE FACTORY
@@ -157,6 +163,7 @@ export const makeSyncProviderUsageUseCase = (
         // Step 2: Process each provider client independently
         for (const client of clients) {
           let syncLogId: string | undefined;
+          let currentProviderId: string | undefined;
 
           try {
             // ── SETUP: Provider lookup + cursor + sync log ──────────────────────
@@ -170,6 +177,9 @@ export const makeSyncProviderUsageUseCase = (
               continue;
             }
 
+            // Track provider id for the catastrophic catch block
+            currentProviderId = provider.id;
+
             const providerCursor = await deps.syncCursorRepo.findCursor(
               provider.id,
               undefined,
@@ -179,7 +189,10 @@ export const makeSyncProviderUsageUseCase = (
             const providerStartTime =
               !data.forceFullSync && providerCursor
                 ? providerCursor.lastSyncedBucket
-                : new Date(endTime.getTime() - DEFAULT_LOOKBACK_MS);
+                : new Date(
+                    endTime.getTime() -
+                      (client.firstSyncLookbackMs ?? FALLBACK_FIRST_SYNC_LOOKBACK_MS),
+                  );
 
             logger.info('sync.provider.cursor', {
               provider: client.providerSlug,
@@ -188,6 +201,17 @@ export const makeSyncProviderUsageUseCase = (
               resolvedStartTime: providerStartTime.toISOString(),
               forceFullSync: data.forceFullSync ?? false,
             });
+
+            // Mark sync as in_progress on the provider row (idempotent — safe if
+            // already set by connectProvider). Best effort: don't abort if this fails.
+            try {
+              await deps.providerRepo.markSyncStarted(provider.id);
+            } catch (markErr) {
+              logger.warn('sync.provider.markSyncStarted_failed', {
+                provider: client.providerSlug,
+                error: markErr instanceof Error ? markErr.message : String(markErr),
+              });
+            }
 
             const syncLog = await deps.syncLogRepo.create({
               providerId: provider.id,
@@ -371,6 +395,11 @@ export const makeSyncProviderUsageUseCase = (
                 });
               } catch { /* best effort — sync log update failure shouldn't mask the original error */ }
 
+              // Mark provider sync state as error. Best effort.
+              try {
+                await deps.providerRepo.markSyncFailed(provider.id, errorMsg);
+              } catch { /* best effort */ }
+
               failed.push({ providerSlug: client.providerSlug, error: errorMsg });
               continue;
             }
@@ -473,6 +502,16 @@ export const makeSyncProviderUsageUseCase = (
               costRecordsCreated: costResult.created,
               costRecordsUpdated: costResult.updated,
             });
+
+            // Mark provider sync as succeeded. Best effort — don't fail the sync result.
+            try {
+              await deps.providerRepo.markSyncSucceeded(provider.id, new Date());
+            } catch (markErr) {
+              logger.warn('sync.provider.markSyncSucceeded_failed', {
+                provider: client.providerSlug,
+                error: markErr instanceof Error ? markErr.message : String(markErr),
+              });
+            }
           } catch (err) {
             // Catastrophic failure for this provider (setup failed, e.g. provider not found in DB)
             const errorMsg = err instanceof Error ? err.message : String(err);
@@ -490,6 +529,13 @@ export const makeSyncProviderUsageUseCase = (
                   completedAt: new Date(),
                   durationMs: Date.now() - syncStart,
                 });
+              } catch { /* last resort */ }
+            }
+
+            // Best-effort: mark provider sync state as error if we got a provider id
+            if (currentProviderId) {
+              try {
+                await deps.providerRepo.markSyncFailed(currentProviderId, errorMsg);
               } catch { /* last resort */ }
             }
 

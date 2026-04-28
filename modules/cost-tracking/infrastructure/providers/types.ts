@@ -103,6 +103,21 @@ export type ProviderUsageClient = {
   providerSlug: string;
 
   /**
+   * Maximum historical lookback in milliseconds used on first sync (when no
+   * cursor exists). Reflects how far back the provider's usage API actually
+   * retains data. Subsequent syncs always use the cursor regardless of this
+   * value.
+   *
+   * Defaults to 30 days if not set (safe fallback for unknown providers).
+   *
+   * Guidelines per provider:
+   *   OpenAI  — 365 days (Organization Usage API retains ~1 year)
+   *   Anthropic — 90 days (Admin usage/cost report retention)
+   *   Vertex AI / Gemini — 42 days (Cloud Monitoring 6-week retention window)
+   */
+  firstSyncLookbackMs?: number;
+
+  /**
    * Fetch all usage data for the given time window from the provider API.
    *
    * @param startTime - Inclusive start of the aggregation window (UTC)

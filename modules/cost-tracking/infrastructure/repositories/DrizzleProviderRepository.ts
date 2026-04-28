@@ -19,12 +19,12 @@
 //   const modelRepo = makeModelRepository(db);
 // =============================================================================
 
-import { eq, and, isNull, asc } from 'drizzle-orm';
+import { eq, and, isNull, asc, sql } from 'drizzle-orm';
 import { costTrackingProviders } from '../../schema/providers';
 import { costTrackingProviderCredentials } from '../../schema/providerCredentials';
 import { costTrackingModels } from '../../schema/models';
 import { costTrackingModelPricing } from '../../schema/modelPricing';
-import { Provider, ProviderStatus } from '../../domain/provider';
+import { Provider, ProviderStatus, ProviderSyncState } from '../../domain/provider';
 import { ProviderCredential, CredentialType, CredentialStatus } from '../../domain/providerCredential';
 import { Model, ModelStatus, ServiceCategory } from '../../domain/model';
 import { ModelPricing, PricingRates } from '../../domain/modelPricing';
@@ -32,6 +32,8 @@ import {
   IProviderRepository,
   IProviderCredentialRepository,
   IModelRepository,
+  IProviderSyncStatusRepository,
+  ProviderSyncStatusRow,
   CredentialWithProvider,
 } from '../../domain/repositories';
 import { CostTrackingDatabase } from '../database';
@@ -100,6 +102,9 @@ export const makeProviderRepository = (db: CostTrackingDatabase): IProviderRepos
       status: provider.status,
       configuration: provider.configuration ?? null,
       lastSyncAt: provider.lastSyncAt ?? null,
+      syncState: provider.syncState,
+      syncStartedAt: provider.syncStartedAt ?? null,
+      syncError: provider.syncError ?? null,
       createdAt: provider.createdAt,
       updatedAt: provider.updatedAt,
       deletedAt: provider.deletedAt ?? null,
@@ -116,10 +121,102 @@ export const makeProviderRepository = (db: CostTrackingDatabase): IProviderRepos
         status: provider.status,
         configuration: provider.configuration ?? null,
         lastSyncAt: provider.lastSyncAt ?? null,
+        syncState: provider.syncState,
+        syncStartedAt: provider.syncStartedAt ?? null,
+        syncError: provider.syncError ?? null,
         updatedAt: provider.updatedAt,
         deletedAt: provider.deletedAt ?? null,
       })
       .where(eq(costTrackingProviders.id, provider.id));
+  },
+
+  /**
+   * Mark a provider sync as started.
+   * Sets sync_state='in_progress', sync_started_at=NOW(), sync_error=NULL.
+   */
+  async markSyncStarted(providerId: string): Promise<void> {
+    await db
+      .update(costTrackingProviders)
+      .set({
+        syncState: 'in_progress',
+        syncStartedAt: sql`NOW()`,
+        syncError: null,
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(costTrackingProviders.id, providerId));
+  },
+
+  /**
+   * Mark a provider sync as succeeded.
+   * Sets sync_state='success', last_sync_at=<lastSyncAt>, sync_error=NULL.
+   */
+  async markSyncSucceeded(providerId: string, lastSyncAt: Date): Promise<void> {
+    await db
+      .update(costTrackingProviders)
+      .set({
+        syncState: 'success',
+        lastSyncAt,
+        syncError: null,
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(costTrackingProviders.id, providerId));
+  },
+
+  /**
+   * Mark a provider sync as failed.
+   * Sets sync_state='error', sync_error=<errorMessage>.
+   */
+  async markSyncFailed(providerId: string, errorMessage: string): Promise<void> {
+    await db
+      .update(costTrackingProviders)
+      .set({
+        syncState: 'error',
+        syncError: errorMessage.slice(0, 500),
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(costTrackingProviders.id, providerId));
+  },
+});
+
+// =============================================================================
+// SECTION 1B: PROVIDER SYNC STATUS REPOSITORY FACTORY
+// =============================================================================
+
+/**
+ * Factory function that creates a lightweight sync-status repository.
+ *
+ * Selects only the five columns needed for polling sync state. Used by the
+ * getSyncStatus use case which is called on every client-side poll tick.
+ *
+ * @param db - Drizzle database instance with Cost Tracking schema
+ * @returns IProviderSyncStatusRepository implementation
+ */
+export const makeProviderSyncStatusRepository = (
+  db: CostTrackingDatabase,
+): IProviderSyncStatusRepository => ({
+  /**
+   * Return sync-state projections for all active providers.
+   * ZOMBIE SHIELD: excludes soft-deleted records.
+   */
+  async findSyncStatus(): Promise<ProviderSyncStatusRow[]> {
+    const rows = await db
+      .select({
+        slug: costTrackingProviders.slug,
+        syncState: costTrackingProviders.syncState,
+        syncStartedAt: costTrackingProviders.syncStartedAt,
+        syncError: costTrackingProviders.syncError,
+        lastSyncAt: costTrackingProviders.lastSyncAt,
+      })
+      .from(costTrackingProviders)
+      .where(isNull(costTrackingProviders.deletedAt));
+
+    return rows.map((row) => ({
+      slug: row.slug,
+      syncState: row.syncState as ProviderSyncState,
+      syncStartedAt: row.syncStartedAt ?? null,
+      syncError: row.syncError ?? null,
+      lastSyncAt: row.lastSyncAt ?? null,
+    }));
   },
 });
 
@@ -380,6 +477,9 @@ function mapToProvider(row: typeof costTrackingProviders.$inferSelect): Provider
     status: row.status as ProviderStatus,
     configuration: (row.configuration as Record<string, unknown> | null) ?? undefined,
     lastSyncAt: row.lastSyncAt ?? undefined,
+    syncState: row.syncState as ProviderSyncState,
+    syncStartedAt: row.syncStartedAt ?? null,
+    syncError: row.syncError ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? undefined,

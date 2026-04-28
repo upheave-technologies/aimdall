@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { TemplateWizardView } from '../_components/TemplateWizardView';
 import { PillInput } from './PillInput';
 import { CredentialAssigner } from './CredentialAssigner';
-import { useToast } from './ToastProvider';
+import { useToast } from '../../_containers/ToastProvider';
 import type { TemplateType, CredentialWithProvider } from '@/modules/cost-tracking/domain/types';
 
 // =============================================================================

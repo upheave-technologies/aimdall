@@ -480,7 +480,7 @@ export function ProviderWizardView({
           <div className="flex items-center justify-between border-b border-foreground/10 px-8 py-5">
             <div>
               <p className="text-xs font-medium text-foreground/50">
-                Step {step} of 3
+                Step {step} of 2
               </p>
               <h2 className="text-lg font-semibold">Connect a Provider</h2>
             </div>
@@ -496,9 +496,9 @@ export function ProviderWizardView({
             </button>
           </div>
 
-          {/* Progress bar — 3 segments */}
+          {/* Progress bar — 2 segments */}
           <div className="flex h-1 w-full">
-            {[1, 2, 3].map((seg) => (
+            {[1, 2].map((seg) => (
               <div
                 key={seg}
                 className={`flex-1 transition-colors duration-200 ${
@@ -561,74 +561,29 @@ export function ProviderWizardView({
               </div>
             )}
 
-            {/* ---------------------------------------------------------------- */}
-            {/* STEP 3 — Connected!                                               */}
-            {/* ---------------------------------------------------------------- */}
-            {step === 3 && selectedProvider && (
-              <div
-                className="flex flex-col items-center py-8 text-center"
-                style={{ animation: 'wizard-fade 200ms ease-in-out' }}
-              >
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-                  <svg
-                    className="h-8 w-8 text-emerald-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold">
-                  {selectedProvider.displayName} connected successfully!
-                </h3>
-                <p className="mt-2 text-sm text-foreground/60">
-                  Your credentials are stored securely. An initial data sync has been triggered.
-                </p>
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <a
-                    href="/cost-tracking"
-                    className="rounded-xl bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-                  >
-                    Go to Dashboard
-                  </a>
-                  <button
-                    type="button"
-                    onClick={onReset}
-                    className="rounded-xl border border-foreground/15 px-6 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/5"
-                  >
-                    Add Another Provider
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Footer — Back / Continue navigation (steps 1 & 2 only) */}
-          {step < 3 && (
-            <div className="flex items-center justify-between border-t border-foreground/10 px-8 py-5">
+          {/* Footer — Back / Continue navigation */}
+          <div className="flex items-center justify-between border-t border-foreground/10 px-8 py-5">
+            <button
+              type="button"
+              onClick={step === 1 ? onClose : onReset}
+              className="rounded border border-foreground/15 px-4 py-2 text-sm font-medium text-foreground/70 hover:bg-foreground/5"
+            >
+              {step === 1 ? 'Cancel' : 'Back'}
+            </button>
+
+            {step === 1 && (
               <button
                 type="button"
-                onClick={step === 1 ? onClose : onReset}
-                className="rounded border border-foreground/15 px-4 py-2 text-sm font-medium text-foreground/70 hover:bg-foreground/5"
+                onClick={() => selectedSlug && onSelectProvider(selectedSlug)}
+                disabled={selectedSlug === null}
+                className="rounded-xl bg-foreground px-5 py-2 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {step === 1 ? 'Cancel' : 'Back'}
+                Continue
               </button>
-
-              {step === 1 && (
-                <button
-                  type="button"
-                  onClick={() => selectedSlug && onSelectProvider(selectedSlug)}
-                  disabled={selectedSlug === null}
-                  className="rounded-xl bg-foreground px-5 py-2 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Continue
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>

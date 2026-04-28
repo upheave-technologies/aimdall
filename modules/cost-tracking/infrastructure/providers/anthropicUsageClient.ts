@@ -128,6 +128,11 @@ type AnthropicCostResponse = {
 export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClient => ({
   providerSlug: 'anthropic',
 
+  // Anthropic Admin API (usage_report/cost_report) — actual retention cap is
+  // undocumented; 365 days is used speculatively. The API will reject or
+  // return a shorter window if its real limit is lower.
+  firstSyncLookbackMs: 365 * 24 * 60 * 60 * 1_000,
+
   /**
    * Fetch all usage data from Anthropic for the given time window.
    * Uses daily buckets with group_by on api_key_id, workspace_id, model.
@@ -394,7 +399,7 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
     logger.info('provider.test_connection.start', { provider: 'anthropic' });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
     try {
       const now = new Date();
@@ -444,14 +449,26 @@ export const makeAnthropicUsageClient = (adminApiKey: string): ProviderUsageClie
         status: response.status,
         body: body.slice(0, 200),
       });
-      return { success: false, error: `Anthropic API returned status ${response.status}.` };
+      if (response.status === 429) {
+        return { success: false, error: 'Anthropic is rate-limiting requests right now. Wait a minute and try again.' };
+      }
+      if (response.status >= 500 && response.status <= 599) {
+        return { success: false, error: 'Anthropic is having trouble right now. This is usually temporary — try again in a minute. If it keeps failing, check status.anthropic.com.' };
+      }
+      return { success: false, error: 'Could not verify your Anthropic key. Please double-check it and try again. If the problem persists, contact support.' };
     } catch (networkError) {
       clearTimeout(timeoutId);
       logger.error('provider.test_connection.network_error', {
         provider: 'anthropic',
         error: networkError instanceof Error ? networkError.message : String(networkError),
       });
-      return { success: false, error: 'Could not reach Anthropic API. Check your network connection.' };
+      const isTimeout = networkError instanceof Error && networkError.name === 'AbortError';
+      return {
+        success: false,
+        error: isTimeout
+          ? 'Anthropic API took too long to respond (>30s). Try again.'
+          : 'Could not reach Anthropic API. Check your network connection.',
+      };
     }
   },
 });

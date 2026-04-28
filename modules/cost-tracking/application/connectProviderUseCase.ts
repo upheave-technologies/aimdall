@@ -26,6 +26,7 @@ import { ProviderCredential, CredentialType } from '../domain/providerCredential
 import { IProviderRepository, IProviderCredentialRepository } from '../domain/repositories';
 import { encrypt } from '../infrastructure/encryption';
 import { CostTrackingError } from './costTrackingError';
+import { logger } from '../infrastructure/logger';
 import { makeProviderRepository, makeProviderCredentialRepository } from '../infrastructure/repositories/DrizzleProviderRepository';
 import { db } from '@/lib/db';
 
@@ -103,6 +104,9 @@ export const makeConnectProviderUseCase = (
         slug,
         displayName: data.displayName,
         status: 'active',
+        syncState: 'idle',
+        syncStartedAt: null,
+        syncError: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -195,11 +199,12 @@ export const makeConnectProviderUseCase = (
     let encryptedSecret: string;
     try {
       encryptedSecret = encrypt(secret);
-    } catch {
+    } catch (err) {
+      logger.error('connectProvider.encrypt_failed', { providerSlug: slug, err });
       return {
         success: false,
         error: new CostTrackingError(
-          'Failed to encrypt credential. Check ENCRYPTION_KEY environment variable.',
+          'Could not save your credentials securely. Please try again or contact support if the problem continues.',
           'SERVICE_ERROR',
         ),
       };
@@ -232,6 +237,17 @@ export const makeConnectProviderUseCase = (
         success: false,
         error: new CostTrackingError('Failed to save provider credential', 'SERVICE_ERROR'),
       };
+    }
+
+    // 7. Mark sync as in_progress so the dashboard shows a syncing skeleton
+    //    immediately on the next page render. The actual sync is spawned as a
+    //    fire-and-forget promise by the server action layer after this returns.
+    try {
+      await providerRepo.markSyncStarted(provider.id);
+    } catch {
+      // Best effort — if this fails the credential is still saved; the dashboard
+      // will show 'idle' instead of 'in_progress' until the next sync tick.
+      logger.warn('connectProvider.markSyncStarted_failed', { providerId: provider.id });
     }
 
     return {

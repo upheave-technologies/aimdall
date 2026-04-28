@@ -30,7 +30,7 @@ import { UsageRecord } from './usageRecord';
 import { ProviderCost } from './providerCost';
 import { SyncLog, SyncStatus } from './syncLog';
 import { SyncCursor } from './syncCursor';
-import { Provider } from './provider';
+import { Provider, ProviderSyncState } from './provider';
 import { ProviderCredential } from './providerCredential';
 import { Model } from './model';
 import { ModelPricing } from './modelPricing';
@@ -267,6 +267,53 @@ export type IProviderRepository = {
 
   /** Update an existing provider (e.g. lastSyncAt, status). */
   update: (provider: Provider) => Promise<void>;
+
+  /**
+   * Mark a provider sync as started.
+   * Sets sync_state='in_progress', sync_started_at=NOW(), sync_error=NULL.
+   * Does NOT touch last_sync_at.
+   */
+  markSyncStarted: (providerId: string) => Promise<void>;
+
+  /**
+   * Mark a provider sync as succeeded.
+   * Sets sync_state='success', last_sync_at=<lastSyncAt>, sync_error=NULL.
+   * Does NOT touch sync_started_at.
+   */
+  markSyncSucceeded: (providerId: string, lastSyncAt: Date) => Promise<void>;
+
+  /**
+   * Mark a provider sync as failed.
+   * Sets sync_state='error', sync_error=<errorMessage>.
+   * Does NOT touch last_sync_at or sync_started_at.
+   */
+  markSyncFailed: (providerId: string, errorMessage: string) => Promise<void>;
+};
+
+// =============================================================================
+// SECTION 6B: PROVIDER SYNC STATUS REPOSITORY
+// =============================================================================
+
+/**
+ * A minimal sync-state projection of a provider row.
+ * Used exclusively by the getSyncStatus polling use case.
+ */
+export type ProviderSyncStatusRow = {
+  slug: string;
+  syncState: ProviderSyncState;
+  syncStartedAt: Date | null;
+  syncError: string | null;
+  lastSyncAt: Date | null;
+};
+
+export type IProviderSyncStatusRepository = {
+  /**
+   * Return a lightweight sync-state projection for every active provider.
+   * Selects only the five columns needed for polling: slug, sync_state,
+   * sync_started_at, sync_error, last_sync_at.
+   * ZOMBIE SHIELD: soft-deleted records are excluded.
+   */
+  findSyncStatus: () => Promise<ProviderSyncStatusRow[]>;
 };
 
 // =============================================================================

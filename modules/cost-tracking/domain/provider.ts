@@ -27,6 +27,9 @@ export type ProviderSlug = string;
 /** Operational state of a connected provider. */
 export type ProviderStatus = 'active' | 'paused' | 'error';
 
+/** Sync lifecycle state for a connected provider. */
+export type ProviderSyncState = 'idle' | 'in_progress' | 'success' | 'error';
+
 export type Provider = {
   id: string;
   slug: ProviderSlug;
@@ -35,6 +38,9 @@ export type Provider = {
   status: ProviderStatus;
   configuration?: Record<string, unknown>;
   lastSyncAt?: Date;
+  syncState: ProviderSyncState;
+  syncStartedAt: Date | null;
+  syncError: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -102,6 +108,9 @@ export const createProvider = (
       status: options?.status ?? 'active',
       apiBaseUrl: options?.apiBaseUrl,
       configuration: options?.configuration,
+      syncState: 'idle' as ProviderSyncState,
+      syncStartedAt: null,
+      syncError: null,
     },
   };
 };

@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { ToastStack } from '../_components/ToastStack';
-import type { Toast } from '../_components/_types';
+import { ToastStack } from '../attributions/_components/ToastStack';
+import type { Toast } from '../attributions/_components/_types';
 
 // =============================================================================
 // CONTEXT

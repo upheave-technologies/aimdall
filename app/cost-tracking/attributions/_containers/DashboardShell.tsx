@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { GroupGrid } from '../_components/GroupGrid';
 import { GroupDetailPanel } from './GroupDetailPanel';
 import { TemplateWizard } from './TemplateWizard';
-import { ToastProvider } from './ToastProvider';
 import type {
   AttributionGroup,
   AttributionSummaryRow,
@@ -97,7 +96,7 @@ export function DashboardShell({
       : null;
 
   return (
-    <ToastProvider>
+    <>
       <GroupGrid
         groups={sortedFilteredGroups}
         summaryRows={summaryRows}
@@ -137,6 +136,6 @@ export function DashboardShell({
           applyTemplateAction={applyTemplateAction}
         />
       )}
-    </ToastProvider>
+    </>
   );
 }

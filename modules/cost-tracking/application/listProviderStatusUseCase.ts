@@ -17,6 +17,7 @@
 
 import { Result } from '@/packages/shared/lib/result';
 import { IProviderRepository, IProviderCredentialRepository } from '../domain/repositories';
+import { ProviderSyncState } from '../domain/provider';
 import { CostTrackingError } from './costTrackingError';
 import { makeProviderRepository, makeProviderCredentialRepository } from '../infrastructure/repositories/DrizzleProviderRepository';
 import { db } from '@/lib/db';
@@ -35,6 +36,9 @@ export type ProviderStatusItem = {
   credentialHint?: string;
   providerId?: string;
   credentialId?: string;
+  syncState: ProviderSyncState;
+  syncStartedAt: Date | null;
+  syncError: string | null;
 };
 
 // =============================================================================
@@ -94,7 +98,16 @@ export const makeListProviderStatusUseCase = (
       // 2. Build a lookup map: slug → { provider, syncCredentials }
       const providerMap = new Map<
         string,
-        { id: string; status: string; lastSyncAt?: Date; syncCredentialId?: string; keyHint?: string }
+        {
+          id: string;
+          status: string;
+          lastSyncAt?: Date;
+          syncCredentialId?: string;
+          keyHint?: string;
+          syncState: ProviderSyncState;
+          syncStartedAt: Date | null;
+          syncError: string | null;
+        }
       >();
 
       await Promise.all(
@@ -107,6 +120,9 @@ export const makeListProviderStatusUseCase = (
             lastSyncAt: provider.lastSyncAt,
             syncCredentialId: primaryCredential?.id,
             keyHint: primaryCredential?.keyHint,
+            syncState: provider.syncState,
+            syncStartedAt: provider.syncStartedAt,
+            syncError: provider.syncError,
           });
         }),
       );
@@ -121,7 +137,10 @@ export const makeListProviderStatusUseCase = (
             displayName: catalogEntry.displayName,
             description: catalogEntry.description,
             connected: false,
-            status: 'not_connected',
+            status: 'not_connected' as const,
+            syncState: 'idle' as ProviderSyncState,
+            syncStartedAt: null,
+            syncError: null,
           };
         }
 
@@ -134,11 +153,14 @@ export const makeListProviderStatusUseCase = (
           connected,
           status: connected
             ? (dbEntry.status as 'active' | 'paused' | 'error')
-            : 'not_connected',
+            : 'not_connected' as const,
           lastSyncAt: dbEntry.lastSyncAt,
           credentialHint: dbEntry.keyHint,
           providerId: dbEntry.id,
           credentialId: dbEntry.syncCredentialId,
+          syncState: dbEntry.syncState,
+          syncStartedAt: dbEntry.syncStartedAt,
+          syncError: dbEntry.syncError,
         };
       });
 

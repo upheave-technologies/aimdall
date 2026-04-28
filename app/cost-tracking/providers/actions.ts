@@ -9,16 +9,20 @@
 //
 // Actions:
 //   testConnectionAction    — validate credentials without persisting
-//   connectProviderAction   — store credentials and register the provider
+//   connectProviderAction   — store credentials, spawn background sync, redirect
 //   disconnectProviderAction — soft-delete credentials and pause the provider
 //   triggerSyncAction        — run an on-demand usage sync for one provider
+//   getSyncStatusAction      — lightweight polling target for client-side sync state
 // =============================================================================
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { testProviderConnection } from '@/modules/cost-tracking/application/testProviderConnectionUseCase';
 import { connectProvider } from '@/modules/cost-tracking/application/connectProviderUseCase';
 import { disconnectProvider } from '@/modules/cost-tracking/application/disconnectProviderUseCase';
 import { listProviderStatus } from '@/modules/cost-tracking/application/listProviderStatusUseCase';
+import { getSyncStatus } from '@/modules/cost-tracking/application/getSyncStatusUseCase';
+import type { ProviderSyncStatus } from '@/modules/cost-tracking/application/getSyncStatusUseCase';
 import {
   syncProviderUsage,
   syncProviderUsageFromDb,
@@ -85,23 +89,30 @@ export async function testConnectionAction(
  * Idempotent on the provider level — an existing provider row is reused and a
  * new credential is appended.
  *
+ * On success: spawns a background sync (fire-and-forget), revalidates paths,
+ * and redirects the browser to /cost-tracking?connected=<slug>. Because
+ * redirect() throws a Next.js signal, the return type is only reached on the
+ * error path — callers should handle { success: false } inline.
+ *
  * Required fields:  providerSlug, displayName
  * Optional fields:  label
  * Credential fields (provider-specific, collected dynamically — same as test)
  */
 export async function connectProviderAction(
   formData: FormData,
-): Promise<ActionResult<{ providerId: string; credentialId: string }>> {
+): Promise<ActionResult<never>> {
   const providerSlug = formData.get('providerSlug') as string | null;
   const displayName = formData.get('displayName') as string | null;
   const label = formData.get('label') as string | null;
 
   if (!providerSlug || providerSlug.trim().length === 0) {
-    return { success: false, error: 'Provider is required' };
+    return { success: false, error: 'Provider is required.' };
   }
   if (!displayName || displayName.trim().length === 0) {
-    return { success: false, error: 'Display name is required' };
+    return { success: false, error: 'Display name is required.' };
   }
+
+  const slug = providerSlug.trim();
 
   // Collect credential fields, excluding the reserved form fields
   const reservedKeys = new Set(['providerSlug', 'displayName', 'label']);
@@ -113,19 +124,63 @@ export async function connectProviderAction(
   }
 
   const result = await connectProvider({
-    providerSlug: providerSlug.trim(),
+    providerSlug: slug,
     displayName: displayName.trim(),
     credentials,
     label: label?.trim() || undefined,
   });
 
   if (!result.success) {
-    return { success: false, error: result.error.message };
+    // Translate internal error messages to plain user-facing language.
+    const raw = result.error.message;
+    let userMessage: string;
+
+    if (result.error.code === 'VALIDATION_ERROR') {
+      // Presence errors from the use case are already plain text (e.g. "Missing required credential: apiKey").
+      // Rephrase to remove internal field names.
+      if (raw.includes('apiKey')) {
+        userMessage = 'An API key is required to connect this provider. Check the form and try again.';
+      } else if (raw.includes('adminApiKey')) {
+        userMessage = 'An Admin API key is required to connect Anthropic. Check the form and try again.';
+      } else if (raw.includes('projectId')) {
+        userMessage = 'A Project ID is required to connect this provider. Check the form and try again.';
+      } else if (raw.includes('Unsupported provider')) {
+        userMessage = 'That provider is not supported yet. Please choose a listed provider.';
+      } else {
+        userMessage = raw;
+      }
+    } else {
+      // SERVICE_ERROR — something went wrong on our side or the provider rejected the credential.
+      userMessage =
+        'Something went wrong while saving your credentials. Please try again, or contact support if the problem continues.';
+    }
+
+    return { success: false, error: userMessage };
   }
+
+  // Spawn a background sync — fire and forget.
+  // connectProvider already called markSyncStarted, so the dashboard will show
+  // "syncing" immediately on next render. The sync runs asynchronously while
+  // the user is redirected to the dashboard.
+  void (async () => {
+    try {
+      const { clients, sync } = await syncProviderUsageFromDb();
+      const targetClients = clients.filter((c) => c.providerSlug === slug);
+      if (targetClients.length > 0) {
+        await sync({});
+      }
+    } catch (err) {
+      console.error('[connectProviderAction] Background sync failed', err);
+    }
+  })();
 
   revalidatePath('/cost-tracking/providers');
   revalidatePath('/cost-tracking');
-  return { success: true, data: result.value };
+
+  // redirect() throws a Next.js NEXT_REDIRECT signal — it never returns normally.
+  // The wizard's handleConnect will not receive a return value on success; the
+  // browser navigates to the dashboard instead.
+  redirect(`/cost-tracking?connected=${encodeURIComponent(slug)}`);
 }
 
 // =============================================================================
@@ -220,4 +275,46 @@ export async function triggerSyncAction(
       error: e instanceof Error ? e.message : 'Sync failed',
     };
   }
+}
+
+// =============================================================================
+// getSyncStatusAction
+// =============================================================================
+
+/**
+ * Lightweight polling target for client-side sync state.
+ * Returns sync lifecycle fields for all known providers — no aggregations, no
+ * credential lookups. Intended to be called every ~5 s by the dashboard.
+ *
+ * Dates are serialised to ISO strings so they survive the server→client boundary.
+ */
+
+export type SyncStatusProvider = {
+  slug: string;
+  syncState: 'idle' | 'in_progress' | 'success' | 'error';
+  syncStartedAt: string | null;
+  syncError: string | null;
+  lastSyncAt: string | null;
+};
+
+export type GetSyncStatusActionResult =
+  | { ok: true; providers: SyncStatusProvider[] }
+  | { ok: false; error: string };
+
+export async function getSyncStatusAction(): Promise<GetSyncStatusActionResult> {
+  const result = await getSyncStatus();
+
+  if (!result.success) {
+    return { ok: false, error: 'Unable to retrieve sync status. Please refresh the page.' };
+  }
+
+  const providers: SyncStatusProvider[] = result.value.map((p: ProviderSyncStatus) => ({
+    slug: p.slug,
+    syncState: p.syncState,
+    syncStartedAt: p.syncStartedAt ? p.syncStartedAt.toISOString() : null,
+    syncError: p.syncError,
+    lastSyncAt: p.lastSyncAt ? p.lastSyncAt.toISOString() : null,
+  }));
+
+  return { ok: true, providers };
 }

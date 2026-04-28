@@ -11,9 +11,12 @@ type ActionResult<T = undefined> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
+type ProviderSyncState = 'idle' | 'in_progress' | 'success' | 'error';
+
 type ProviderActionsProps = {
   providerId: string;
   providerName: string;
+  syncState: ProviderSyncState;
   triggerSyncAction: (formData: FormData) => Promise<ActionResult<{ synced: number }>>;
   disconnectAction: (formData: FormData) => Promise<void>;
 };
@@ -25,9 +28,14 @@ type ProviderActionsProps = {
 export function ProviderActions({
   providerId,
   providerName,
+  syncState,
   triggerSyncAction,
   disconnectAction,
 }: ProviderActionsProps) {
+  // syncState === 'in_progress' from the server means a server-side sync is
+  // running (e.g. triggered by the background job or a recent connect). We
+  // reflect this in the UI immediately without waiting for the client handler.
+  const serverSyncing = syncState === 'in_progress';
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
   const [disconnecting, setDisconnecting] = useState(false);
@@ -58,7 +66,7 @@ export function ProviderActions({
 
   return (
     <ProviderActionsView
-      syncing={syncing}
+      syncing={syncing || serverSyncing}
       disconnecting={disconnecting}
       syncError={syncError}
       onSync={handleSync}

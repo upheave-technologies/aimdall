@@ -14,6 +14,7 @@
 // Enums
 export {
   costTrackingProviderStatus,
+  costTrackingProviderSyncState,
   costTrackingSegmentType,
   costTrackingCredentialType,
   costTrackingCredentialStatus,

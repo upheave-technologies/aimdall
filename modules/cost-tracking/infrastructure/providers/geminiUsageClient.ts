@@ -144,6 +144,10 @@ export type GeminiUsageClientConfig = {
 export const makeGeminiUsageClient = (config: GeminiUsageClientConfig): ProviderUsageClient => ({
   providerSlug: 'google_gemini',
 
+  // Google Cloud Monitoring retains most metrics for 6 weeks (42 days).
+  // Querying beyond this returns no data but does not error.
+  firstSyncLookbackMs: 42 * 24 * 60 * 60 * 1_000,
+
   /**
    * Fetch Gemini API token and request counts from Cloud Monitoring for the
    * given window. Merges input/output tokens and request counts per
@@ -318,7 +322,7 @@ export const makeGeminiUsageClient = (config: GeminiUsageClientConfig): Provider
     const startTime = endTime - 5 * 60 * 1_000;
 
     // Wrap in a race against a manual timeout promise.
-    const timeoutMs = 10_000;
+    const timeoutMs = 30_000;
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), timeoutMs),
     );
@@ -375,7 +379,10 @@ export const makeGeminiUsageClient = (config: GeminiUsageClientConfig): Provider
           error: 'Not authenticated. Set up Application Default Credentials (run: gcloud auth application-default login).',
         };
       }
-      return { success: false, error: `Could not connect to Google Cloud: ${message}` };
+      if (message === 'timeout') {
+        return { success: false, error: 'Gemini API took too long to respond (>30s). Try again.' };
+      }
+      return { success: false, error: 'Could not connect to Google Cloud right now. Please check your network and try again.' };
     }
   },
 });

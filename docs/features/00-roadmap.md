@@ -22,9 +22,11 @@ Circuit Breakers and the Model Cost Simulator are powerful differentiators, but 
 |------|--------|---------|
 | **Tier 1: Intelligence Layer** | **Done** | Smart Recommendations (6 analyzers, dismiss lifecycle, UI). Attribution Reimagined (4 templates, auto-discovery, coverage, rule preview, UI). |
 | **Tier 2: Competitive Moat** | Not started | — |
-| **Tier 3: Operational Foundation** | Not started | — |
+| **Tier 3: Operational Foundation** | **Partial** | Provider Onboarding shipped 2026-04-28 (wizard, persistent sync state, full-history first sync per provider). Alert Delivery and Open Source Estimation not started. |
 
 **Infrastructure hardening (2026-04-22):** Sync pipeline hardened to enterprise grade — concurrency guard, phased execution (usage vs costs), per-record resilience in all provider clients, 90s aggregate timeout, PostgreSQL xmax-based counting, cursor race protection, pool hardening with timeouts. Audit checklist at `docs/critical-flows/sync-pipeline.md`.
+
+**Provider onboarding UX (2026-04-28):** Connect-and-redirect flow with DB-persisted sync state (`sync_state` enum on `cost_tracking_providers`), animated dashboard skeleton during first sync, 5s client polling with `router.refresh()`, lifted toast surface, enriched provider cards (status badge, last-sync, key hint, sync/disconnect actions), per-provider first-sync windows (OpenAI 365d, Anthropic 365d speculative, Vertex/Gemini 42d via Cloud Monitoring). See `system/context/cost-tracking/features/provider-onboarding-ux/worklog.md`.
 
 ---
 
@@ -53,8 +55,9 @@ These features fill infrastructure gaps. They're necessary but not differentiati
 | # | Feature | Status | Why Last |
 |---|---------|--------|----------|
 | 5 | [Alert Delivery](05-alert-delivery.md) | Not started | Budgets and anomalies are useless if nobody sees them in time. Slack + email delivery makes everything in Tier 1-2 actionable. Deferred because the features it notifies about should exist first. |
-| 6 | [Provider Onboarding](06-provider-onboarding.md) | Not started | Critical for adoption beyond the current user, but the current user already has providers configured via env vars. The "5 minutes to value" onboarding story is killer — but only after there's enough value to justify the first 5 minutes. |
+| 6 | [Provider Onboarding](06-provider-onboarding.md) | **Done (2026-04-28)** | Connect → redirect → DB-persisted sync state → animated dashboard skeleton → real data fades in. Per-provider full-history first sync. Enriched provider cards. The "5 minutes to value" story is now real. |
 | 7 | [Open Source Cost Estimation](07-open-source-estimation.md) | Not started | Useful reference data but inherently approximate. Lower priority because it's comparative information, not operational capability. No dependency on other features. |
+| 8 | [GCP Billing Export](08-gcp-billing-export.md) | Not started | Cloud Monitoring caps Vertex/Gemini history at 42 days. BigQuery Billing Export retains 13 months of detailed line items. Reconciles with Cloud Monitoring via the existing dedup key. Build after Tier 2 unless Google-heavy adoption blocks on the 6-week cap. |
 
 ---
 
@@ -73,4 +76,4 @@ Open Source Estimation (standalone)
 
 Smart Recommendations and Attribution Reimagined are independent of each other and can be built in parallel. Circuit Breakers depend on the existing budget system. The Model Cost Simulator shares calculation logic with recommendations. Alert Delivery depends on circuit breakers and budgets producing events worth notifying about. Everything else is independent.
 
-**Completed paths:** Smart Recommendations → (unblocks Model Cost Simulator). Attribution Engine → (unblocks per-group Alert Delivery).
+**Completed paths:** Smart Recommendations → (unblocks Model Cost Simulator). Attribution Engine → (unblocks per-group Alert Delivery). Provider Onboarding → (unblocks GCP Billing Export, since the wizard's Google step is the natural place to enable it).

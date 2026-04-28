@@ -1,4 +1,5 @@
 import { NavigationContainer } from './_containers/NavigationContainer';
+import { ToastProvider } from './_containers/ToastProvider';
 
 export default function CostTrackingLayout({
   children,
@@ -6,11 +7,13 @@ export default function CostTrackingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <NavigationContainer />
-      <div className="flex-1 overflow-auto">
-        {children}
+    <ToastProvider>
+      <div className="flex min-h-screen">
+        <NavigationContainer />
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

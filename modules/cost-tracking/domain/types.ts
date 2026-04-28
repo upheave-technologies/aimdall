@@ -23,7 +23,7 @@ export type {
 
 export type { UsageRecord } from './usageRecord';
 export type { KeyAssignment } from './keyAssignment';
-export type { Provider } from './provider';
+export type { Provider, ProviderSyncState } from './provider';
 export type { ProviderCredential } from './providerCredential';
 export type { Model } from './model';
 export type { AttributionGroup, GroupType } from './attributionGroup';

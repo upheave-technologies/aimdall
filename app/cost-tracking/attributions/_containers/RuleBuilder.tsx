@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { RuleBuilderForm } from '../_components/RuleBuilderForm';
 import { previewRuleAction } from '../actions';
-import { useToast } from './ToastProvider';
+import { useToast } from '../../_containers/ToastProvider';
 import type { CredentialWithProvider } from '@/modules/cost-tracking/domain/types';
 import type { RulePreview } from '../_components/_types';
 

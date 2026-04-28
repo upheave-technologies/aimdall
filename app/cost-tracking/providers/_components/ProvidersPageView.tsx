@@ -19,6 +19,7 @@ import { ProviderWizard } from '../_containers/ProviderWizard';
 // Mirrors ProviderStatusItem from the use case — defined here to avoid
 // importing from the application layer (forbidden in frontend code).
 type ProviderStatus = 'active' | 'paused' | 'error' | 'not_connected';
+type ProviderSyncState = 'idle' | 'in_progress' | 'success' | 'error';
 
 export type ProviderStatusItem = {
   slug: string;
@@ -30,6 +31,9 @@ export type ProviderStatusItem = {
   credentialHint?: string;
   providerId?: string;
   credentialId?: string;
+  syncState: ProviderSyncState;
+  syncStartedAt: Date | null;
+  syncError: string | null;
 };
 
 type ActionResult<T = undefined> =
@@ -41,8 +45,11 @@ type ProvidersPageViewProps = {
   connectAction: (formData: FormData) => Promise<void>;
   disconnectAction: (formData: FormData) => Promise<void>;
   testConnectionAction: (formData: FormData) => Promise<ActionResult<{ detail?: string }>>;
-  connectProviderAction: (formData: FormData) => Promise<ActionResult<{ providerId: string; credentialId: string }>>;
+  // On success, connectProviderAction redirects — it never returns a data payload.
+  connectProviderAction: (formData: FormData) => Promise<ActionResult<never>>;
   triggerSyncAction: (formData: FormData) => Promise<ActionResult<{ synced: number }>>;
+  // Void wrapper of triggerSyncAction — safe to use directly as a form action
+  syncAction: (formData: FormData) => Promise<void>;
 };
 
 // =============================================================================
@@ -55,6 +62,7 @@ export function ProvidersPageView({
   testConnectionAction,
   connectProviderAction,
   triggerSyncAction,
+  syncAction,
 }: ProvidersPageViewProps) {
   const connectedProviders = providers.filter((p) => p.connected);
   const availableProviders = providers.filter((p) => !p.connected);
@@ -96,7 +104,6 @@ export function ProvidersPageView({
           <ProviderWizard
             testConnectionAction={testConnectionAction}
             connectProviderAction={connectProviderAction}
-            triggerSyncAction={triggerSyncAction}
             availableProviders={availableProviders.map((p) => ({
               slug: p.slug,
               displayName: p.displayName,
@@ -140,11 +147,16 @@ export function ProvidersPageView({
               status={p.status}
               lastSyncAt={p.lastSyncAt}
               credentialHint={p.credentialHint}
+              providerId={p.providerId}
+              syncState={p.syncState}
+              syncError={p.syncError}
+              syncAction={syncAction}
               actionsSlot={
                 p.providerId ? (
                   <ProviderActions
                     providerId={p.providerId}
                     providerName={p.displayName}
+                    syncState={p.syncState}
                     triggerSyncAction={triggerSyncAction}
                     disconnectAction={disconnectAction}
                   />
@@ -164,7 +176,6 @@ export function ProvidersPageView({
           <ProviderWizard
             testConnectionAction={testConnectionAction}
             connectProviderAction={connectProviderAction}
-            triggerSyncAction={triggerSyncAction}
             availableProviders={availableProviders.map((p) => ({
               slug: p.slug,
               displayName: p.displayName,

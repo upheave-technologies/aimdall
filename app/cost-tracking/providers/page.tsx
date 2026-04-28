@@ -40,6 +40,11 @@ async function disconnectAction(formData: FormData): Promise<void> {
   await disconnectProviderAction(formData);
 }
 
+async function syncAction(formData: FormData): Promise<void> {
+  'use server';
+  await triggerSyncAction(formData);
+}
+
 // =============================================================================
 // Page
 // =============================================================================
@@ -61,6 +66,7 @@ export default async function ProvidersPage() {
       testConnectionAction={testConnectionAction}
       connectProviderAction={connectProviderAction}
       triggerSyncAction={triggerSyncAction}
+      syncAction={syncAction}
     />
   );
 }

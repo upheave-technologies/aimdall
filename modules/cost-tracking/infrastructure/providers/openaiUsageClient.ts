@@ -572,6 +572,9 @@ const FETCH_BUDGET_MS = 90_000;
 export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
   providerSlug: 'openai',
 
+  // OpenAI Organization Usage API retains approximately one year of history.
+  firstSyncLookbackMs: 365 * 24 * 60 * 60 * 1_000,
+
   /**
    * Fetch all usage from all OpenAI endpoints for the given time window.
    * Handles multi-page responses transparently per endpoint.
@@ -953,7 +956,7 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
     logger.info('provider.test_connection.start', { provider: 'openai' });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
     try {
       // Use an actual organization endpoint to validate the admin key.
@@ -997,14 +1000,26 @@ export const makeOpenAIUsageClient = (apiKey: string): ProviderUsageClient => ({
         status: response.status,
         body: body.slice(0, 200),
       });
-      return { success: false, error: `OpenAI API returned status ${response.status}.` };
+      if (response.status === 429) {
+        return { success: false, error: 'OpenAI is rate-limiting requests right now. Wait a minute and try again.' };
+      }
+      if (response.status >= 500 && response.status <= 599) {
+        return { success: false, error: 'OpenAI is having trouble right now. This is usually temporary — try again in a minute. If it keeps failing, check status.openai.com.' };
+      }
+      return { success: false, error: 'Could not verify your OpenAI key. Please double-check it and try again. If the problem persists, contact support.' };
     } catch (networkError) {
       clearTimeout(timeoutId);
       logger.error('provider.test_connection.network_error', {
         provider: 'openai',
         error: networkError instanceof Error ? networkError.message : String(networkError),
       });
-      return { success: false, error: 'Could not reach OpenAI API. Check your network connection.' };
+      const isTimeout = networkError instanceof Error && networkError.name === 'AbortError';
+      return {
+        success: false,
+        error: isTimeout
+          ? 'OpenAI API took too long to respond (>30s). Try again.'
+          : 'Could not reach OpenAI API. Check your network connection.',
+      };
     }
   },
 });

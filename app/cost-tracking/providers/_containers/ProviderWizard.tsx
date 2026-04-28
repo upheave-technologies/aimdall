@@ -20,8 +20,8 @@ type AvailableProvider = {
 
 type ProviderWizardProps = {
   testConnectionAction: (formData: FormData) => Promise<ActionResult<{ detail?: string }>>;
-  connectProviderAction: (formData: FormData) => Promise<ActionResult<{ providerId: string; credentialId: string }>>;
-  triggerSyncAction: (formData: FormData) => Promise<ActionResult<{ synced: number }>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connectProviderAction: (formData: FormData) => Promise<ActionResult<any>>;
   availableProviders: AvailableProvider[];
 };
 
@@ -32,7 +32,6 @@ type ProviderWizardProps = {
 export function ProviderWizard({
   testConnectionAction,
   connectProviderAction,
-  triggerSyncAction,
   availableProviders,
 }: ProviderWizardProps) {
   const [open, setOpen] = useState(false);
@@ -104,22 +103,19 @@ export function ProviderWizard({
       return;
     }
 
-    // Step 2: Store credentials
+    // Step 2: Store credentials and redirect.
+    // connectProviderAction redirects to /cost-tracking?connected=<slug> on
+    // success — it never returns on the happy path. Only the error path returns.
     const connectResult = await connectProviderAction(fd);
     if (!connectResult.success) {
       setConnectStatus('failed');
       setConnectError(connectResult.error);
       return;
     }
-
-    // Step 3: Trigger initial sync (best-effort)
-    const { providerId } = connectResult.data!;
-    const syncFd = new FormData();
-    syncFd.set('providerId', providerId);
-    await triggerSyncAction(syncFd);
-
-    setConnectStatus('success');
-    setStep(3);
+    // If we reach here, the action returned without redirecting (unexpected).
+    // Fall back gracefully to the failed state rather than hanging on step 2.
+    setConnectStatus('failed');
+    setConnectError('Something unexpected happened. Please try again.');
   }
 
   return (
@@ -138,4 +134,5 @@ export function ProviderWizard({
       onCredentialChange={handleCredentialChange}
     />
   );
+
 }

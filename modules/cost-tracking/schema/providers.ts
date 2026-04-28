@@ -20,7 +20,7 @@ import { pgTable, text, timestamp, jsonb, index, uniqueIndex } from 'drizzle-orm
 import { isNull } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
-import { costTrackingProviderStatus } from './enums';
+import { costTrackingProviderStatus, costTrackingProviderSyncState } from './enums';
 
 export const costTrackingProviders = pgTable(
   'cost_tracking_providers',
@@ -42,6 +42,12 @@ export const costTrackingProviders = pgTable(
 
     // Denormalized from sync_logs for quick dashboard display
     lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+
+    syncState: costTrackingProviderSyncState('sync_state').notNull().default('idle'),
+
+    syncStartedAt: timestamp('sync_started_at', { withTimezone: true }),
+
+    syncError: text('sync_error'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 

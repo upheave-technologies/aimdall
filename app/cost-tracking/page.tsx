@@ -11,9 +11,10 @@ import type {
   DashboardUnassignedSpend,
   DashboardAnomalies,
   DashboardBudgets,
+  DashboardProviderSyncItem,
 } from './_components/DashboardView';
 
-type SearchParams = Promise<{ from?: string; to?: string }>;
+type SearchParams = Promise<{ from?: string; to?: string; connected?: string }>;
 
 const EMPTY_FORECAST: DashboardForecast = null;
 const EMPTY_UNASSIGNED: DashboardUnassignedSpend = null;
@@ -69,9 +70,19 @@ export default async function CostTrackingPage({
     ? budgetsResult.value
     : EMPTY_BUDGETS;
 
-  const hasProviders = providerStatusResult.success
-    ? providerStatusResult.value.some((p) => p.connected)
-    : false;
+  // Derive provider sync states — used for three-state empty state logic and client polling.
+  const providerSyncItems: DashboardProviderSyncItem[] = providerStatusResult.success
+    ? providerStatusResult.value.map((p) => ({
+        slug: p.slug,
+        displayName: p.displayName,
+        connected: p.connected,
+        syncState: p.syncState,
+        providerId: p.providerId ?? null,
+      }))
+    : [];
+
+  const hasProviders = providerSyncItems.some((p) => p.connected);
+  const anySyncing = providerSyncItems.some((p) => p.syncState === 'in_progress');
 
   return (
     <DashboardView
@@ -84,6 +95,9 @@ export default async function CostTrackingPage({
       hasFilter={!!(params.from || params.to)}
       filterLabel={params.from && params.to ? `${params.from} – ${params.to}` : params.from ? `From ${params.from}` : params.to ? `Until ${params.to}` : null}
       hasProviders={hasProviders}
+      anySyncing={anySyncing}
+      providerSyncItems={providerSyncItems}
+      connectedSlug={params.connected ?? null}
     />
   );
 }

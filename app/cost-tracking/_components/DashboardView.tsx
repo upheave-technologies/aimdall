@@ -1,7 +1,11 @@
 import Link from 'next/link';
-import type { UsageSummaryRow, DailySpendRow } from '@/modules/cost-tracking/domain/types';
+import type { UsageSummaryRow, DailySpendRow, ProviderSyncState } from '@/modules/cost-tracking/domain/types';
 import { SyncButtonContainer } from '../_containers/SyncButtonContainer';
 import { DateRangeFilterContainer } from '../_containers/DateRangeFilterContainer';
+import { DashboardSkeleton } from './DashboardSkeleton';
+import { SyncStatusPoller } from '../_containers/SyncStatusPoller';
+import { ConnectedToast } from '../_containers/ConnectedToast';
+import { NoDataPanel } from './NoDataPanel';
 
 // ---------------------------------------------------------------------------
 // Types (local — mirrors what page.tsx passes down)
@@ -90,6 +94,15 @@ export type DashboardBudgets = {
   overallStatus: 'on_track' | 'at_risk' | 'exceeded';
 } | null;
 
+// Sync state item passed from page.tsx — serialisable across the server→client boundary.
+export type DashboardProviderSyncItem = {
+  slug: string;
+  displayName: string;
+  connected: boolean;
+  syncState: ProviderSyncState;
+  providerId: string | null;
+};
+
 export type DashboardViewProps = {
   summary: DashboardSummary;
   mtdSummary: DashboardSummary;
@@ -100,6 +113,9 @@ export type DashboardViewProps = {
   anomalies: DashboardAnomalies;
   budgets: DashboardBudgets;
   hasProviders: boolean;
+  anySyncing: boolean;
+  providerSyncItems: DashboardProviderSyncItem[];
+  connectedSlug: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -290,15 +306,57 @@ function EmptyState() {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, anomalies, budgets, hasProviders }: DashboardViewProps) {
+
+export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, anomalies, budgets, hasProviders, anySyncing, providerSyncItems, connectedSlug }: DashboardViewProps) {
   // Compute totals
   const mtdSpend = mtdSummary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
   const filteredSpend = summary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
   const hasData = (mtdSummary.byProvider.length > 0 && mtdSpend > 0) || (summary.byProvider.length > 0 && filteredSpend > 0);
 
-  if (!hasData) {
+  // --------------------------------------------------------------------------
+  // Three-state empty state
+  // --------------------------------------------------------------------------
+
+  // State 1: No providers connected at all — existing hero empty state.
+  if (!hasProviders) {
     return <EmptyState />;
   }
+
+  // Side-effect islands (render regardless of state, always invisible).
+  const pollerAndToast = (
+    <>
+      <SyncStatusPoller initialProviders={providerSyncItems} />
+      <ConnectedToast
+        connectedSlug={connectedSlug}
+        providerSyncItems={providerSyncItems}
+      />
+    </>
+  );
+
+  // State 2: Providers connected, sync in progress.
+  if (anySyncing) {
+    const syncingProviders = providerSyncItems.filter((p) => p.syncState === 'in_progress');
+    const syncingNames = syncingProviders.map((p) => p.displayName);
+    return (
+      <>
+        {pollerAndToast}
+        <DashboardSkeleton syncingProviderNames={syncingNames} />
+      </>
+    );
+  }
+
+  // State 3: Providers connected, sync done/idle, but zero spend data.
+  if (!hasData) {
+    const connectedProviders = providerSyncItems.filter((p) => p.connected);
+    return (
+      <>
+        {pollerAndToast}
+        <NoDataPanel connectedProviders={connectedProviders} />
+      </>
+    );
+  }
+
+  // State 4: Has data — full dashboard.
 
   // Current month range label
   const now = new Date();
@@ -370,33 +428,9 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
     : [];
 
   return (
-    <main className="mx-auto max-w-7xl px-8 py-8">
-      {/* ----------------------------------------------------------------- */}
-      {/* No-providers CTA                                                   */}
-      {/* ----------------------------------------------------------------- */}
-      {!hasProviders && (
-        <div className="mb-8 rounded-xl border-2 border-dashed border-foreground/15 bg-foreground/[0.02] p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-foreground/5">
-            <svg className="h-6 w-6 text-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold">Connect your first AI provider</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-foreground/50">
-            Start tracking costs in under 5 minutes. Connect OpenAI, Anthropic, or Google Cloud to see where your AI spend is going.
-          </p>
-          <a
-            href="/cost-tracking/providers"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-          >
-            Set Up Providers
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </a>
-        </div>
-      )}
-
+    <>
+      {pollerAndToast}
+      <main className="mx-auto max-w-7xl px-8 py-8">
       {/* ----------------------------------------------------------------- */}
       {/* Header                                                             */}
       {/* ----------------------------------------------------------------- */}
@@ -737,5 +771,6 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
         </div>
       )}
     </main>
+    </>
   );
 }

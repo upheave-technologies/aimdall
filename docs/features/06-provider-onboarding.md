@@ -2,7 +2,7 @@
 
 > Priority: P2
 > Impact: High
-> Status: Scoped
+> Status: **Done (2026-04-28)** — see implementation notes at the bottom of this file and the worklog at `system/context/cost-tracking/features/provider-onboarding-ux/worklog.md`.
 
 ## Intent
 
@@ -117,3 +117,28 @@ After the first provider is connected, the user can add additional providers fro
 - **Provider sync pipeline (existing)**: The sync infrastructure, credential storage, and usage data ingestion are already built. The onboarding flow wraps these capabilities in a user-friendly experience.
 - **Provider usage clients (existing)**: Connection testing uses the existing provider clients' ability to make authenticated API calls.
 - **Credential entity (existing)**: ProviderCredential with its type, status, and metadata fields stores the configured credentials.
+
+---
+
+## Implementation Notes (2026-04-28)
+
+### What shipped
+
+- **Provider selection** — connect/disconnect cards with status badges (Active / Paused / Error / Syncing), last-sync time, masked key hint, Sync now / Disconnect actions.
+- **Credential setup guide** — provider-specific wizard with API key entry. Step-by-step provider-dashboard guidance is in place for OpenAI, Anthropic, Vertex, and Gemini.
+- **Connection test** — `testConnectionAction` validates credentials before persistence. User-facing errors are translated to plain language (no status codes, no jargon).
+- **Initial sync** — fully automatic. The `connectProviderAction` server action saves the credential, marks `sync_state='in_progress'` in the DB, spawns a fire-and-forget background sync, and redirects to `/cost-tracking?connected=<slug>`. The dashboard renders a shimmer skeleton mirroring the real layout while sync runs. A 5-second client poller flips to the real dashboard when sync completes. State persists across refreshes (lives on `cost_tracking_providers.sync_state`).
+- **Full-history first sync** — per-provider `firstSyncLookbackMs`: OpenAI 365 days, Anthropic 365 days (speculative — undocumented cap), Vertex 42 days, Gemini 42 days. The Vertex/Gemini limit is the GCP Cloud Monitoring metric retention window — see feature 08 (GCP Billing Export) for the planned path to 13 months.
+- **Credential management** — providers list page splits Connected vs Available with the enriched cards described above.
+- **Toast notifications** — `ToastProvider` lifted to the cost-tracking layout. Welcome toast on dashboard arrival, completion toast when sync finishes, error toast on sync failure with retry button on the affected card.
+
+### What was descoped from the original spec
+
+- **Real-time sync counters** ("12,450 records imported, $8,340 identified") — not implemented. The current skeleton is a pure "loading" indicator without per-record progress. Would require per-provider client progress reporting to surface.
+- **End-of-sync mini-dashboard** — not built. The user lands directly on the real dashboard, which is arguably better — they immediately see their full data rather than a teaser.
+- **Annotated screenshots** in the credential setup guide — text instructions are present; screenshots not embedded. Worth adding once the surrounding UI is stable.
+- **"Reconnect" action** (replace credential without losing data) — not implemented. Today, disconnect and re-add is the path.
+
+### Known follow-ups
+
+See `system/context/cost-tracking/features/provider-onboarding-ux/worklog.md` for the technical worklog — schema migration details, file inventory, and known follow-ups (stale-sync recovery, `ActionResult<any>` type cleanup, disconnect-then-reconnect cursor edge case).

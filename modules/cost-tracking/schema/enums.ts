@@ -23,6 +23,16 @@ export const costTrackingProviderStatus = pgEnum('cost_tracking_provider_status'
 ]);
 
 // ---------------------------------------------------------------------------
+// Provider sync state — the current sync lifecycle state of a provider
+// ---------------------------------------------------------------------------
+export const costTrackingProviderSyncState = pgEnum('cost_tracking_provider_sync_state', [
+  'idle',
+  'in_progress',
+  'success',
+  'error',
+]);
+
+// ---------------------------------------------------------------------------
 // Segment type — the kind of organizational unit a provider exposes
 // (workspace, project, folder, etc.)
 // ---------------------------------------------------------------------------

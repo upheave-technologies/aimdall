@@ -9,6 +9,14 @@ pnpm install
 cp .env.example .env  # fill in your values
 ```
 
+Generate an `ENCRYPTION_KEY` (required for connecting providers through the UI) and add it to `.env`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Treat this key like a password — never commit it. Rotating it invalidates any provider credentials already stored in the database.
+
 ## Database
 
 ```bash
