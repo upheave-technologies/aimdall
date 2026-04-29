@@ -1,19 +1,14 @@
 import { detectSpendAnomalies } from '@/modules/cost-tracking/application/detectSpendAnomaliesUseCase';
 import { getUsageSummary } from '@/modules/cost-tracking/application/getUsageSummaryUseCase';
+import { resolveSelectedPeriod } from '@/modules/cost-tracking/domain/types';
 import { AlertsView } from './_components/AlertsView';
 import type { AnomaliesData, SummaryData } from './_components/AlertsView';
 
-type SearchParams = Promise<{ window?: string }>;
+// The `window` param is retired per RFC Section 3.1 and Section 3.9.
+// Stale `window=` URLs are ignored — first navigation lands on the 30d default.
+// The layout-mounted PeriodSelector now owns period selection for all cost-tracking pages.
+type SearchParams = Promise<{ period?: string; from?: string; to?: string }>;
 
-const VALID_WINDOWS = [30, 90, 180] as const;
-type WindowDays = (typeof VALID_WINDOWS)[number];
-
-function parseWindowDays(raw: string | undefined): WindowDays {
-  const parsed = parseInt(raw ?? '', 10);
-  return (VALID_WINDOWS as readonly number[]).includes(parsed)
-    ? (parsed as WindowDays)
-    : 30;
-}
 
 export default async function AlertsPage({
   searchParams,
@@ -21,11 +16,20 @@ export default async function AlertsPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const windowDays = parseWindowDays(params.window);
+
+  // Resolve the unified period from URL params (`period`, `from`, `to`).
+  // Any stale `window` param in the URL is absent from SearchParams and
+  // therefore silently ignored — no error, no translation.
+  const { startDate, endDate } = resolveSelectedPeriod({
+    period: params.period,
+    from: params.from,
+    to: params.to,
+  });
 
   const [anomaliesResult, summaryResult] = await Promise.all([
-    detectSpendAnomalies({ windowDays }),
-    getUsageSummary({}),
+    // startDate/endDate filter the displayed list; detection window is system-controlled.
+    detectSpendAnomalies({ startDate, endDate }),
+    getUsageSummary({ startDate, endDate }),
   ]);
 
   if (!anomaliesResult.success) {

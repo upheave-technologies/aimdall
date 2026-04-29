@@ -2,16 +2,15 @@
 // DimensionBar — The control surface for the Explore feature
 // =============================================================================
 // A sticky horizontal bar with:
-//   - Time preset pill + popover
 //   - One pill per dimension (ungrouped / grouped / filtered states)
 //   - Reset button when any non-default state is active
 //
+// Period selection is handled exclusively by the layout-level PeriodSelector.
 // Pure presentational. All state lives in ExploreSurfaceContainer.
 // No hooks. No 'use client'.
 // =============================================================================
 
 import type { ExplorerDimension } from '@/modules/cost-tracking/domain/types';
-import { TIME_PRESET_LABELS } from './constants';
 
 // =============================================================================
 // SECTION 1: TYPES
@@ -28,16 +27,6 @@ type DimensionEntry = {
 };
 
 export type DimensionBarProps = {
-  timePreset: string;
-  isTimePickerOpen: boolean;
-  onTimePillClick: () => void;
-  onTimePickerClose: () => void;
-  onTimePresetSelect: (preset: string) => void;
-  customFrom: string;
-  customTo: string;
-  onCustomFromChange: (val: string) => void;
-  onCustomToChange: (val: string) => void;
-
   dimensions: DimensionEntry[];
   onGroupByToggle: (dimension: ExplorerDimension) => void;
   onClearFilter: (dimension: ExplorerDimension) => void;
@@ -48,115 +37,7 @@ export type DimensionBarProps = {
 };
 
 // =============================================================================
-// SECTION 2: TIME PICKER POPOVER
-// =============================================================================
-
-const TIME_PRESETS = [
-  'today',
-  '7d',
-  '30d',
-  '90d',
-  'mtd',
-  'qtd',
-  'ytd',
-  'custom',
-] as const;
-
-function TimePickerPopover({
-  currentPreset,
-  customFrom,
-  customTo,
-  onSelect,
-  onCustomFromChange,
-  onCustomToChange,
-  onClose,
-}: {
-  currentPreset: string;
-  customFrom: string;
-  customTo: string;
-  onSelect: (preset: string) => void;
-  onCustomFromChange: (val: string) => void;
-  onCustomToChange: (val: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-30"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Popover panel */}
-      <div className="absolute left-0 top-full z-40 mt-2 w-52 rounded-xl border border-foreground/10 bg-background shadow-xl">
-        <div className="p-1.5">
-          {TIME_PRESETS.filter((p) => p !== 'custom').map((preset) => (
-            <button
-              key={preset}
-              onClick={() => {
-                onSelect(preset);
-                onClose();
-              }}
-              className={
-                currentPreset === preset
-                  ? 'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground bg-foreground/[0.07]'
-                  : 'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground transition-colors'
-              }
-            >
-              {TIME_PRESET_LABELS[preset]}
-              {currentPreset === preset && (
-                <span className="h-1.5 w-1.5 rounded-full bg-foreground/60" />
-              )}
-            </button>
-          ))}
-
-          {/* Custom option */}
-          <button
-            onClick={() => onSelect('custom')}
-            className={
-              currentPreset === 'custom'
-                ? 'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground bg-foreground/[0.07]'
-                : 'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground transition-colors'
-            }
-          >
-            Custom range
-            {currentPreset === 'custom' && (
-              <span className="h-1.5 w-1.5 rounded-full bg-foreground/60" />
-            )}
-          </button>
-
-          {/* Custom date inputs */}
-          {currentPreset === 'custom' && (
-            <div className="mt-1.5 space-y-1.5 border-t border-foreground/10 px-1 pt-2">
-              <div>
-                <label className="mb-0.5 block text-xs text-foreground/40">From</label>
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={(e) => onCustomFromChange(e.target.value)}
-                  className="w-full rounded-lg border border-foreground/15 bg-foreground/5 px-2.5 py-1.5 text-xs text-foreground/80 outline-none focus:border-foreground/30"
-                />
-              </div>
-              <div>
-                <label className="mb-0.5 block text-xs text-foreground/40">To</label>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={(e) => onCustomToChange(e.target.value)}
-                  className="w-full rounded-lg border border-foreground/15 bg-foreground/5 px-2.5 py-1.5 text-xs text-foreground/80 outline-none focus:border-foreground/30"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// =============================================================================
-// SECTION 3: DIMENSION PILL
+// SECTION 2: DIMENSION PILL
 // =============================================================================
 
 function DimensionPill({
@@ -237,53 +118,10 @@ function DimensionPill({
 }
 
 // =============================================================================
-// SECTION 4: TIME PILL
-// =============================================================================
-
-function TimePill({
-  timePreset,
-  onClick,
-}: {
-  timePreset: string;
-  onClick: () => void;
-}) {
-  const label = TIME_PRESET_LABELS[timePreset] ?? timePreset.toUpperCase();
-
-  return (
-    <button
-      onClick={onClick}
-      aria-label={`Time range: ${label}. Click to change.`}
-      aria-haspopup="listbox"
-      className="flex items-center gap-1.5 rounded-full border border-foreground/20 px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:border-foreground/40"
-    >
-      {label}
-      <svg viewBox="0 0 12 12" fill="none" className="h-3 w-3 opacity-50" aria-hidden="true">
-        <path
-          d="M3 4.5L6 7.5L9 4.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
-  );
-}
-
-// =============================================================================
-// SECTION 5: DIMENSION BAR
+// SECTION 3: DIMENSION BAR
 // =============================================================================
 
 export function DimensionBar({
-  timePreset,
-  isTimePickerOpen,
-  onTimePillClick,
-  onTimePickerClose,
-  onTimePresetSelect,
-  customFrom,
-  customTo,
-  onCustomFromChange,
-  onCustomToChange,
   dimensions,
   onGroupByToggle,
   onClearFilter,
@@ -294,25 +132,6 @@ export function DimensionBar({
   return (
     <div className="sticky top-0 z-40 border-b border-foreground/10 bg-background/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center gap-1.5 px-6 py-3">
-        {/* Time section */}
-        <div className="relative">
-          <TimePill timePreset={timePreset} onClick={onTimePillClick} />
-          {isTimePickerOpen && (
-            <TimePickerPopover
-              currentPreset={timePreset}
-              customFrom={customFrom}
-              customTo={customTo}
-              onSelect={onTimePresetSelect}
-              onCustomFromChange={onCustomFromChange}
-              onCustomToChange={onCustomToChange}
-              onClose={onTimePickerClose}
-            />
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="mx-2 h-4 w-px bg-foreground/15" aria-hidden="true" />
-
         {/* Dimension pills */}
         {dimensions.map((d) => (
           <DimensionPill

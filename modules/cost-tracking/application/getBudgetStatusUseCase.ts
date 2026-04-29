@@ -25,7 +25,10 @@ import { db } from '@/lib/db';
 // SECTION 1: TYPES
 // =============================================================================
 
-export type GetBudgetStatusInput = Record<string, never>;
+export type GetBudgetStatusInput = {
+  startDate?: Date; // optional: scopes which budgets are listed (page-migration step will use this)
+  endDate?: Date;   // optional: scopes which budgets are listed (page-migration step will use this)
+};
 
 export type BudgetStatusRow = {
   id: string;

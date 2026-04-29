@@ -25,6 +25,7 @@ export type { UsageRecord } from './usageRecord';
 export type { KeyAssignment } from './keyAssignment';
 export type { Provider, ProviderSyncState } from './provider';
 export type { ProviderCredential } from './providerCredential';
+export type { ServiceAccountJson } from './serviceAccountCredential';
 export type { Model } from './model';
 export type { AttributionGroup, GroupType } from './attributionGroup';
 export type { AttributionRule, AttributionDimension, MatchType } from './attributionRule';
@@ -59,3 +60,11 @@ export type {
   CoverageResult,
   RulePreviewResult,
 } from './attributionTemplate';
+
+export type {
+  PeriodPreset,
+  PeriodSearchParams,
+  ResolvedPeriod,
+} from './selectedPeriod';
+
+export { resolveSelectedPeriod } from './selectedPeriod';

@@ -167,7 +167,7 @@ export function AttributionsView({
   const principalById = new Map<string, PrincipalRecord>(users.map((u) => [u.id, u]));
 
   return (
-    <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
+    <div className="space-y-10">
 
       {/* ------------------------------------------------------------------- */}
       {/* Header                                                               */}
@@ -827,6 +827,6 @@ export function AttributionsView({
         </form>
       </section>
 
-    </main>
+    </div>
   );
 }

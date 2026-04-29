@@ -28,7 +28,8 @@ import { db } from '@/lib/db';
 // =============================================================================
 
 export type DetectSpendAnomaliesInput = {
-  windowDays?: 30 | 90 | 180; // default 30
+  startDate?: Date; // optional display filter: include anomalies on or after this date
+  endDate?: Date;   // optional display filter: include anomalies on or before this date
 };
 
 export type SpendAnomaly = {
@@ -53,6 +54,12 @@ export type SpendAnomaliesResult = {
 // =============================================================================
 // SECTION 2: USE CASE FACTORY
 // =============================================================================
+
+// System-wide statistical parameter — NOT user-tunable.
+// 90 days provides a robust baseline that captures month-end patterns and
+// seasonal effects. This constant must be the same for all call sites so that
+// dashboard and alerts always report the same detected set for the same period.
+const DETECTION_WINDOW_DAYS = 90;
 
 const SEVERITY_ORDER: Record<SpendAnomaly['severity'], number> = {
   critical: 0,
@@ -80,7 +87,7 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
     data: DetectSpendAnomaliesInput,
   ): Promise<Result<SpendAnomaliesResult, CostTrackingError>> => {
     try {
-      const windowDays = data.windowDays ?? 30;
+      const windowDays = DETECTION_WINDOW_DAYS;
       const now = new Date();
 
       // Step 1: Compute fetch window (UTC).
@@ -198,10 +205,31 @@ export const makeDetectSpendAnomaliesUseCase = (repo: IUsageRecordRepository) =>
         return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
       });
 
+      // Step 6: Apply optional display filter.
+      // Filters the sorted anomaly list to only those whose `date` (YYYY-MM-DD)
+      // falls within [startDate, endDate]. Detection math above is unaffected —
+      // windowDays continues to drive the statistical baseline entirely.
+      // When startDate/endDate are absent the full list is returned unchanged.
+      const startStr = data.startDate
+        ? data.startDate.toISOString().slice(0, 10)
+        : undefined;
+      const endStr = data.endDate
+        ? data.endDate.toISOString().slice(0, 10)
+        : undefined;
+
+      const displayedAnomalies =
+        startStr !== undefined || endStr !== undefined
+          ? anomalies.filter((a) => {
+              if (startStr !== undefined && a.date < startStr) return false;
+              if (endStr !== undefined && a.date > endStr) return false;
+              return true;
+            })
+          : anomalies;
+
       return {
         success: true,
         value: {
-          anomalies,
+          anomalies: displayedAnomalies,
           analysisDays: windowDays,
           providersAnalyzed: providerMap.size,
           lastUpdated: now.toISOString(),

@@ -2,19 +2,21 @@
 // Cost Tracking — Explore Page (Data Layer)
 // =============================================================================
 // Server Component responsible for:
-//   1. Parsing all URL search params (time preset, granularity, grouping, filters)
-//   2. Resolving the time preset to concrete UTC dates
+//   1. Parsing all URL search params (period preset, granularity, grouping, filters)
+//   2. Resolving the period preset to concrete UTC dates via resolveSelectedPeriod
 //   3. Computing the prior period for delta comparison
 //   4. Fetching main data, prior period data, and unassigned spend in parallel
 //   5. Computing derived scalar metrics (daily run rate, dominant segment, anomaly days)
 //   6. Delegating all rendering to ExploreSurfaceContainer
 //
 // No raw HTML JSX lives here. All rendering is delegated to named components.
+// URL contract: `period` (preset token) + optional `from`/`to` for custom ranges.
+// Stale `time=` params are ignored without error (RFC Section 3.9).
 // =============================================================================
 
 import { exploreCostData } from '@/modules/cost-tracking/application/exploreCostDataUseCase';
 import { getUnassignedSpend } from '@/modules/cost-tracking/application/getUnassignedSpendUseCase';
-import { computeWindowAnomalyCount } from '@/modules/cost-tracking/domain/types';
+import { resolveSelectedPeriod, computeWindowAnomalyCount } from '@/modules/cost-tracking/domain/types';
 import type {
   ExplorerDimension,
   ExplorerFilter,
@@ -28,7 +30,7 @@ import { ExploreErrorState } from './_components/ExploreErrorState';
 // =============================================================================
 
 type SearchParams = Promise<{
-  time?: string;
+  period?: string;
   from?: string;
   to?: string;
   gran?: string;
@@ -93,94 +95,24 @@ const FILTER_PARAM_NAMES = [
 // SECTION 3: PURE HELPER FUNCTIONS
 // =============================================================================
 
-function resolveTimePreset(
+/**
+ * Derives the default bucket granularity from a resolved date range.
+ * This is an explore-specific concern — granularity is NOT part of the
+ * domain resolver (RFC Section 8, Open Question 4).
+ *
+ * Rules (matching the former resolveTimePreset behaviour):
+ *   - ytd preset → monthly
+ *   - range > 60 days → weekly
+ *   - otherwise → daily
+ */
+function deriveDefaultGranularity(
   preset: string,
-  customFrom?: string,
-  customTo?: string,
-): {
-  startDate: Date;
-  endDate: Date;
-  defaultGranularity: 'daily' | 'weekly' | 'monthly';
-} {
-  const now = new Date();
-  const todayEnd = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999),
-  );
-
-  switch (preset) {
-    case 'today': {
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-      );
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'daily' };
-    }
-
-    case '7d': {
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6),
-      );
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'daily' };
-    }
-
-    case '90d': {
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 89),
-      );
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'weekly' };
-    }
-
-    case 'mtd': {
-      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      const days = Math.ceil((todayEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      return {
-        startDate: start,
-        endDate: todayEnd,
-        defaultGranularity: days > 60 ? 'weekly' : 'daily',
-      };
-    }
-
-    case 'qtd': {
-      const quarterStartMonth = Math.floor(now.getUTCMonth() / 3) * 3;
-      const start = new Date(Date.UTC(now.getUTCFullYear(), quarterStartMonth, 1));
-      const days = Math.ceil((todayEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      return {
-        startDate: start,
-        endDate: todayEnd,
-        defaultGranularity: days > 60 ? 'weekly' : 'daily',
-      };
-    }
-
-    case 'ytd': {
-      const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'monthly' };
-    }
-
-    case 'custom': {
-      if (customFrom && customTo) {
-        const start = new Date(customFrom + 'T00:00:00Z');
-        const end = new Date(customTo + 'T23:59:59.999Z');
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        return {
-          startDate: start,
-          endDate: end,
-          defaultGranularity: days > 60 ? 'weekly' : 'daily',
-        };
-      }
-      // Fallback to 30d when custom params are missing
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 29),
-      );
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'daily' };
-    }
-
-    default: {
-      // '30d' and any unrecognised value
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 29),
-      );
-      return { startDate: start, endDate: todayEnd, defaultGranularity: 'daily' };
-    }
-  }
+  startDate: Date,
+  endDate: Date,
+): 'daily' | 'weekly' | 'monthly' {
+  if (preset === 'ytd') return 'monthly';
+  const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  return days > 60 ? 'weekly' : 'daily';
 }
 
 function computePriorPeriod(
@@ -205,18 +137,21 @@ export default async function CostExplorePage({
   const params = await searchParams;
 
   // ---------------------------------------------------------------------------
-  // 4a. Parse time preset and resolve concrete UTC dates
+  // 4a. Resolve period — unified URL contract: `period` + optional `from`/`to`
+  // Stale `time=` params are ignored (RFC Section 3.9).
   // ---------------------------------------------------------------------------
-  const timePreset = params.time ?? '30d';
-  const { startDate, endDate, defaultGranularity } = resolveTimePreset(
-    timePreset,
-    params.from,
-    params.to,
-  );
+  const { startDate, endDate, preset } = resolveSelectedPeriod({
+    period: params.period,
+    from: params.from,
+    to: params.to,
+  });
 
   // ---------------------------------------------------------------------------
   // 4b. Resolve granularity — explicit param takes precedence over auto default
+  // Default granularity is derived locally from the resolved range (explore-
+  // specific concern, RFC Section 8 Open Question 4).
   // ---------------------------------------------------------------------------
+  const defaultGranularity = deriveDefaultGranularity(preset, startDate, endDate);
   const allowedGranularities = ['daily', 'weekly', 'monthly'] as const;
   const granularity: 'daily' | 'weekly' | 'monthly' =
     params.gran &&
@@ -302,12 +237,9 @@ export default async function CostExplorePage({
   // ---------------------------------------------------------------------------
   return (
     <ExploreSurfaceContainer
-      timePreset={timePreset}
       granularity={granularity}
       groupBy={groupBy}
       filters={filtersWithLabels}
-      startDateStr={startDate.toISOString().slice(0, 10)}
-      endDateStr={endDate.toISOString().slice(0, 10)}
       page={page}
       rows={mainResult.value.rows}
       timeSeries={mainResult.value.timeSeries}

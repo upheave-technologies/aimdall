@@ -48,8 +48,8 @@ type ActionResult<T = undefined> =
  * Credential fields (provider-specific, collected dynamically):
  *   openai        → apiKey
  *   anthropic     → adminApiKey
- *   google_vertex → projectId
- *   google_gemini → projectId (+ optional apiKey)
+ *   google_vertex → serviceAccountJson  (raw GCP Service Account JSON)
+ *   google_gemini → serviceAccountJson  (raw GCP Service Account JSON)
  */
 export async function testConnectionAction(
   formData: FormData,
@@ -60,7 +60,10 @@ export async function testConnectionAction(
     return { success: false, error: 'Provider is required' };
   }
 
-  // Collect all non-reserved fields as credentials
+  const slug = providerSlug.trim();
+
+  // Collect all non-reserved fields as credentials.
+  // serviceAccountJson is treated as opaque — never logged or inspected here.
   const credentials: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
     if (key !== 'providerSlug' && typeof value === 'string' && value.trim().length > 0) {
@@ -68,13 +71,34 @@ export async function testConnectionAction(
     }
   }
 
-  const result = await testProviderConnection({
-    providerSlug: providerSlug.trim(),
-    credentials,
-  });
+  const result = await testProviderConnection({ providerSlug: slug, credentials });
 
   if (!result.success) {
-    return { success: false, error: result.error.message };
+    const raw = result.error.message;
+    const code = result.error.code;
+
+    let userMessage: string;
+
+    if (code === 'VALIDATION_ERROR') {
+      // Domain-layer parse errors (serviceAccountJson, apiKey, etc.) are already
+      // plain-language — surface them directly.
+      if (raw.includes('serviceAccountJson')) {
+        userMessage = 'A Service Account JSON key file is required to connect this Google provider. Upload the JSON key file you downloaded from the Google Cloud Console.';
+      } else {
+        userMessage = raw;
+      }
+    } else {
+      // SERVICE_ERROR — could be network, API not enabled, or insufficient permissions.
+      if (slug === 'google_vertex' || slug === 'google_gemini') {
+        userMessage =
+          "Couldn't reach Google Cloud. Check that the Cloud Monitoring API is enabled on your project and that the service account has the Monitoring Viewer role, then try again.";
+      } else {
+        userMessage =
+          "Couldn't connect to the provider. Check your credentials and try again.";
+      }
+    }
+
+    return { success: false, error: userMessage };
   }
 
   return { success: true, data: result.value };
@@ -96,7 +120,11 @@ export async function testConnectionAction(
  *
  * Required fields:  providerSlug, displayName
  * Optional fields:  label
- * Credential fields (provider-specific, collected dynamically — same as test)
+ * Credential fields (provider-specific, collected dynamically):
+ *   openai        → apiKey
+ *   anthropic     → adminApiKey
+ *   google_vertex → serviceAccountJson  (raw GCP Service Account JSON)
+ *   google_gemini → serviceAccountJson  (raw GCP Service Account JSON)
  */
 export async function connectProviderAction(
   formData: FormData,
@@ -114,7 +142,8 @@ export async function connectProviderAction(
 
   const slug = providerSlug.trim();
 
-  // Collect credential fields, excluding the reserved form fields
+  // Collect credential fields, excluding the reserved form fields.
+  // serviceAccountJson is treated as opaque — never logged or inspected here.
   const reservedKeys = new Set(['providerSlug', 'displayName', 'label']);
   const credentials: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
@@ -132,25 +161,29 @@ export async function connectProviderAction(
 
   if (!result.success) {
     // Translate internal error messages to plain user-facing language.
+    // Never surface credential values, raw exception names, or internal field names.
     const raw = result.error.message;
     let userMessage: string;
 
     if (result.error.code === 'VALIDATION_ERROR') {
-      // Presence errors from the use case are already plain text (e.g. "Missing required credential: apiKey").
-      // Rephrase to remove internal field names.
+      // Domain-layer validation errors are already plain-language for most cases.
+      // Rephrase the "Missing required credential: X" messages to avoid leaking
+      // internal field names into the UI.
       if (raw.includes('apiKey')) {
         userMessage = 'An API key is required to connect this provider. Check the form and try again.';
       } else if (raw.includes('adminApiKey')) {
         userMessage = 'An Admin API key is required to connect Anthropic. Check the form and try again.';
-      } else if (raw.includes('projectId')) {
-        userMessage = 'A Project ID is required to connect this provider. Check the form and try again.';
+      } else if (raw.includes('serviceAccountJson')) {
+        userMessage = 'A Service Account JSON key file is required to connect this Google provider. Upload the JSON key file you downloaded from the Google Cloud Console.';
       } else if (raw.includes('Unsupported provider')) {
         userMessage = 'That provider is not supported yet. Please choose a listed provider.';
       } else {
+        // Parse errors from serviceAccountCredential domain are already
+        // user-facing plain text (e.g. "The file you uploaded is not valid JSON…").
         userMessage = raw;
       }
     } else {
-      // SERVICE_ERROR — something went wrong on our side or the provider rejected the credential.
+      // SERVICE_ERROR — encryption failure, DB error, or provider-side rejection.
       userMessage =
         'Something went wrong while saving your credentials. Please try again, or contact support if the problem continues.';
     }
@@ -162,17 +195,18 @@ export async function connectProviderAction(
   // connectProvider already called markSyncStarted, so the dashboard will show
   // "syncing" immediately on next render. The sync runs asynchronously while
   // the user is redirected to the dashboard.
-  void (async () => {
-    try {
-      const { clients, sync } = await syncProviderUsageFromDb();
+  // Using .then().catch() guarantees ALL rejections are handled — including any
+  // that escape the async body — preventing Node unhandledRejection crashes.
+  syncProviderUsageFromDb()
+    .then(async ({ clients, sync }) => {
       const targetClients = clients.filter((c) => c.providerSlug === slug);
       if (targetClients.length > 0) {
         await sync({});
       }
-    } catch (err) {
+    })
+    .catch((err) => {
       console.error('[connectProviderAction] Background sync failed', err);
-    }
-  })();
+    });
 
   revalidatePath('/cost-tracking/providers');
   revalidatePath('/cost-tracking');

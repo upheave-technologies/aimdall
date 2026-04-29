@@ -7,11 +7,17 @@
 // For each active provider, this function fetches sync credentials that have an
 // encrypted secret, decrypts each secret, and constructs the appropriate client.
 //
-// Error isolation: if a single credential fails to decrypt, it is skipped with
-// a warning log — the remaining credentials continue to be processed.
+// For GCP providers (google_vertex, google_gemini):
+//   The encrypted secret is the raw GCP Service Account JSON string. It is
+//   decrypted, parsed with parseServiceAccountJson, and the parsed object is
+//   passed to the client factory. If parsing fails, the credential is skipped.
+//
+// Error isolation: if a single credential fails to decrypt or parse, it is
+// skipped with a warning log — the remaining credentials continue.
 // =============================================================================
 
 import { decrypt } from '../encryption';
+import { parseServiceAccountJson } from '../../domain/serviceAccountCredential';
 import { makeOpenAIUsageClient } from './openaiUsageClient';
 import { makeAnthropicUsageClient } from './anthropicUsageClient';
 import { makeVertexUsageClient } from './vertexUsageClient';
@@ -28,11 +34,13 @@ import { logger } from '../logger';
  * Provider slug → client factory mapping:
  *   openai         → makeOpenAIUsageClient(apiKey)
  *   anthropic      → makeAnthropicUsageClient(apiKey)
- *   google_vertex  → makeVertexUsageClient(projectId)
- *   google_gemini  → makeGeminiUsageClient({ projectId })
+ *   google_vertex  → makeVertexUsageClient(serviceAccountJson)
+ *   google_gemini  → makeGeminiUsageClient(serviceAccountJson)
  *
- * Credentials that fail decryption are skipped with a warning. If no
- * ENCRYPTION_KEY is set, all decryptions throw and the returned array is empty.
+ * GCP providers decrypt the secret to a JSON string, parse it with
+ * parseServiceAccountJson, and pass the validated object to the factory.
+ * Credentials that fail decryption or JSON parsing are skipped with a warning.
+ * If no ENCRYPTION_KEY is set, all decryptions throw and the returned array is empty.
  *
  * @param providerRepo    - Repository for fetching all active providers
  * @param credentialRepo  - Repository for fetching sync credentials per provider
@@ -78,13 +86,35 @@ export const buildProviderClientsFromDb = async (
             clients.push(makeAnthropicUsageClient(decryptedSecret));
             break;
 
-          case 'google_vertex':
-            clients.push(makeVertexUsageClient(decryptedSecret));
+          case 'google_vertex': {
+            const parseResult = parseServiceAccountJson(decryptedSecret);
+            if (!parseResult.success) {
+              logger.warn('buildProviderClientsFromDb.parse_service_account_failed', {
+                providerId: provider.id,
+                providerSlug: provider.slug,
+                credentialId: credential.id,
+                error: parseResult.error.message,
+              });
+              break;
+            }
+            clients.push(makeVertexUsageClient(parseResult.value));
             break;
+          }
 
-          case 'google_gemini':
-            clients.push(makeGeminiUsageClient({ projectId: decryptedSecret }));
+          case 'google_gemini': {
+            const parseResult = parseServiceAccountJson(decryptedSecret);
+            if (!parseResult.success) {
+              logger.warn('buildProviderClientsFromDb.parse_service_account_failed', {
+                providerId: provider.id,
+                providerSlug: provider.slug,
+                credentialId: credential.id,
+                error: parseResult.error.message,
+              });
+              break;
+            }
+            clients.push(makeGeminiUsageClient(parseResult.value));
             break;
+          }
 
           default:
             logger.warn('buildProviderClientsFromDb.unknown_slug', {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { SyncButton, type SyncResult } from '../_components/SyncButton';
+import { triggerManualSyncAction } from '../actions';
 
 export function SyncButtonContainer() {
   const [loading, setLoading] = useState(false);
@@ -14,22 +15,16 @@ export function SyncButtonContainer() {
     setError(null);
 
     try {
-      const res = await fetch('/api/cost-tracking/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
+      const outcome = await triggerManualSyncAction();
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body.error ?? `HTTP ${res.status}`);
+      if (!outcome.success) {
+        setError(outcome.error);
         return;
       }
 
-      const data: SyncResult = await res.json();
-      setResult(data);
+      setResult(outcome.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error');
+      setError(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       setLoading(false);
     }

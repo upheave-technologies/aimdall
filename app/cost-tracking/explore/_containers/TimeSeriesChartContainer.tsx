@@ -8,14 +8,57 @@
 //   2. Limit grouped series to top 5 + Other
 //   3. Map raw groupKeys to display-ready SpendSeriesKey objects
 //   4. Wire legend click → onSegmentClick handler
-//   5. Pass computed props to SpendAreaChart — no raw JSX here
+//   5. Compute anomaly dates and bind AnomalyDotLayer component
+//   6. Pass computed props to SpendAreaChart — no raw JSX here
 // =============================================================================
 
+import { useMemo } from 'react';
 import type { ExplorerDimension, TimeSeriesPoint } from '@/modules/cost-tracking/domain/types';
 import { SpendAreaChart, SERIES_COLORS } from '../_components/SpendAreaChart';
 import type { SpendSeriesKey } from '../_components/SpendAreaChart';
+import { AnomalyDotLayer } from './AnomalyDotLayer';
 
 const MAX_SERIES = 5;
+
+// =============================================================================
+// ANOMALY DATE COMPUTATION
+// =============================================================================
+
+/**
+ * Returns a Map of anomalous dates (YYYY-MM-DD) → total daily spend.
+ *
+ * Uses the same 2-stddev threshold as the domain's computeWindowAnomalyCount
+ * so the count badge and the per-day markers always agree.
+ *
+ * Pure function — no side effects, no imports from domain internals.
+ */
+function computeAnomalyDates(timeSeries: TimeSeriesPoint[]): Map<string, number> {
+  const result = new Map<string, number>();
+  if (timeSeries.length < 4) return result;
+
+  const byDate = new Map<string, number>();
+  for (const p of timeSeries) {
+    byDate.set(p.date, (byDate.get(p.date) ?? 0) + parseFloat(p.totalCost || '0'));
+  }
+
+  const entries = Array.from(byDate.entries());
+  if (entries.length < 4) return result;
+
+  const values = entries.map(([, v]) => v);
+  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length;
+  const stddev = Math.sqrt(variance);
+
+  if (stddev === 0) return result;
+
+  for (const [date, spend] of entries) {
+    if (Math.abs(spend - mean) > 2 * stddev) {
+      result.set(date, spend);
+    }
+  }
+
+  return result;
+}
 
 // =============================================================================
 // REBUCKETING
@@ -188,6 +231,24 @@ export function TimeSeriesChartContainer({
     ? buildGroupedSeries(bucketed)
     : buildFlatSeries(bucketed);
 
+  // Compute anomaly dates from the raw daily series (before rebucketing) so
+  // the 2-stddev threshold is always applied at daily granularity, matching
+  // the count shown in the header badge.
+  const anomalyDates = useMemo(() => computeAnomalyDates(timeSeries), [timeSeries]);
+
+  // Create a stable component reference bound to the current anomalyDates and
+  // granularity. Memoized so that SpendAreaChart doesn't re-render the layer
+  // on every keystroke that doesn't change anomalies or granularity.
+  const BoundAnomalyLayer = useMemo(() => {
+    if (!anomalyDates.size) return undefined;
+    // Recharts 3.x renders arbitrary children directly — no props are injected.
+    // AnomalyDotLayer uses useXAxisScale/useYAxisScale hooks to read coordinates.
+    return function BoundLayer() {
+      return <AnomalyDotLayer anomalyDates={anomalyDates} granularity={granularity} />;
+    };
+  // anomalyDates identity changes only when dates/spend values change (useMemo above)
+  }, [anomalyDates, granularity]);
+
   const handleLegendClick = (groupKey: string) => {
     if (!groupBy || groupKey === 'Other') return;
     onSegmentClick(groupKey, labelByKey.get(groupKey) ?? groupKey);
@@ -200,6 +261,7 @@ export function TimeSeriesChartContainer({
       isGrouped={isGrouped}
       granularity={granularity}
       onLegendClick={handleLegendClick}
+      AnomalyLayer={BoundAnomalyLayer}
     />
   );
 }

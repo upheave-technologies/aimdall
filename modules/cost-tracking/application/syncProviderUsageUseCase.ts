@@ -707,9 +707,8 @@ export const syncProviderUsageFromEnv = () => {
   const config: ProviderClientConfig = {
     openaiApiKey: process.env.OPENAI_USAGE_API_KEY,
     anthropicAdminApiKey: process.env.ANTHROPIC_ADMIN_API_KEY,
-    vertexProjectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    geminiProjectId: process.env.GOOGLE_GEMINI_PROJECT_ID,
-    geminiApiKey: process.env.GOOGLE_GEMINI_API_KEY,
+    // Both Vertex AI and Gemini use the same GCP Service Account JSON.
+    gcpServiceAccountJson: process.env.GCP_SERVICE_ACCOUNT_JSON,
   };
   const clients = buildProviderClients(config);
   return { clients, sync: makeSyncProviderUsageUseCase(syncDeps, clients) };

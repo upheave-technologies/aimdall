@@ -277,7 +277,7 @@ function CredentialForm({
         <div>
           <h3 className="text-xl font-semibold">Connect Google Vertex AI</h3>
           <p className="mt-1 text-sm text-foreground/60">
-            Reads usage metrics from Google Cloud Monitoring.
+            Reads usage metrics from Google Cloud Monitoring via a Service Account.
           </p>
         </div>
 
@@ -285,63 +285,64 @@ function CredentialForm({
           <li className="flex gap-3">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">1</span>
             <span>
-              Open{' '}
-              <a href="https://console.cloud.google.com/cloud-resource-manager" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
+              Open the{' '}
+              <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
                 Google Cloud Console
               </a>
-              {' '}→ click your project → copy the <strong>Project ID</strong> shown on the dashboard
+              {' '}and select (or create) the project that runs your Vertex AI workloads.
             </span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">2</span>
             <span>
-              Enable the{' '}
-              <a href="https://console.cloud.google.com/apis/library/monitoring.googleapis.com" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
-                Cloud Monitoring API
-              </a>
-              {' '}for your project
+              Enable these APIs (search by name in the console):{' '}
+              <strong>Cloud Monitoring API</strong>, <strong>Vertex AI API</strong>.
             </span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">3</span>
             <span>
-              Grant your account the <strong>Monitoring Viewer</strong> role:{' '}
-              <code className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-xs">gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member=&quot;user:YOUR_EMAIL&quot; --role=&quot;roles/monitoring.viewer&quot;</code>
+              Go to <strong>IAM &amp; Admin → Service Accounts → Create service account</strong>. Name it (e.g. <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono text-xs">aimdall-metrics</code>).
             </span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">4</span>
             <span>
-              Authenticate:{' '}
-              <code className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-xs">gcloud auth application-default login</code>
+              Grant the role <strong>Monitoring Viewer</strong> (read-only — Aimdall cannot change anything in your project).
             </span>
           </li>
           <li className="flex gap-3">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">5</span>
-            <span>Paste your Project ID below</span>
+            <span>
+              Open the new service account → <strong>Keys → Add key → Create new key → JSON</strong>. The file downloads automatically.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">6</span>
+            <span>Open the file in a text editor, copy its full contents, paste below.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">7</span>
+            <span>After connecting, <strong>delete the JSON file from your computer</strong> — Aimdall has it encrypted at rest.</span>
           </li>
         </ol>
 
-        <div className="rounded-lg bg-foreground/[0.03] px-4 py-3 text-xs text-foreground/50">
-          <strong className="text-foreground/70">Least privilege:</strong> <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono">roles/monitoring.viewer</code> is read-only and is the smallest predefined role that covers what Aimdall needs. Note that personal ADC credentials carry your full account permissions — for tighter isolation, create a dedicated service account with only this role.
-        </div>
-
         <form onSubmit={(e) => { e.preventDefault(); onConnect(); }} className="space-y-4">
           <div>
-            <label htmlFor="vertex-projectId" className="mb-1.5 block text-sm font-medium">
-              Project ID
+            <label htmlFor="vertex-serviceAccountJson" className="mb-1.5 block text-sm font-medium">
+              Service Account JSON
             </label>
-            <input
-              id="vertex-projectId"
-              type="text"
-              name="projectId"
-              placeholder="my-gcp-project-id"
+            <textarea
+              id="vertex-serviceAccountJson"
+              name="serviceAccountJson"
+              rows={12}
+              placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  "private_key_id": "...",\n  ...\n}'}
               required
-              onChange={(e) => onCredentialChange('projectId', e.target.value)}
-              className="w-full rounded-xl border border-foreground/15 bg-foreground/[0.03] px-4 py-2.5 text-sm placeholder:text-foreground/30 focus:border-foreground/30 focus:outline-none"
+              onChange={(e) => onCredentialChange('serviceAccountJson', e.target.value)}
+              className="w-full rounded-xl border border-foreground/15 bg-foreground/[0.03] px-4 py-2.5 font-mono text-xs placeholder:text-foreground/30 focus:border-foreground/30 focus:outline-none resize-none"
             />
             <p className="mt-1.5 text-xs text-foreground/40">
-              Found at the top of your Google Cloud Console. Looks like <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono">my-project-123</code>
+              Your service account JSON is encrypted before storage and is only used to read usage metrics from Google Cloud Monitoring. It is never logged or shared.
             </p>
           </div>
 
@@ -364,71 +365,76 @@ function CredentialForm({
       <div>
         <h3 className="text-xl font-semibold">Connect Google Gemini</h3>
         <p className="mt-1 text-sm text-foreground/60">
-          Reads Gemini API usage from Google Cloud Monitoring.
+          Reads Gemini API usage from Google Cloud Monitoring via a Service Account.
         </p>
+      </div>
+
+      <div className="rounded-lg bg-foreground/[0.03] px-4 py-3 text-xs text-foreground/60">
+        The same Service Account works for both Vertex AI and Gemini API — if you have already created one for Vertex, reuse it here.
       </div>
 
       <ol className="space-y-3 text-sm text-foreground/70">
         <li className="flex gap-3">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">1</span>
           <span>
-            Open{' '}
-            <a href="https://console.cloud.google.com/cloud-resource-manager" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
+            Open the{' '}
+            <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
               Google Cloud Console
             </a>
-            {' '}→ click your project → copy the <strong>Project ID</strong> shown on the dashboard
+            {' '}and select (or create) the project that uses the Gemini API.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">2</span>
           <span>
-            Enable the{' '}
-            <a href="https://console.cloud.google.com/apis/library/monitoring.googleapis.com" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80">
-              Cloud Monitoring API
-            </a>
-            {' '}for your project
+            Enable these APIs (search by name in the console):{' '}
+            <strong>Cloud Monitoring API</strong>, <strong>Generative Language API</strong>.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">3</span>
           <span>
-            Grant your account the <strong>Monitoring Viewer</strong> role:{' '}
-            <code className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-xs">gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member=&quot;user:YOUR_EMAIL&quot; --role=&quot;roles/monitoring.viewer&quot;</code>
+            Go to <strong>IAM &amp; Admin → Service Accounts → Create service account</strong>. Name it (e.g. <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono text-xs">aimdall-metrics</code>).
           </span>
         </li>
         <li className="flex gap-3">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">4</span>
           <span>
-            Authenticate:{' '}
-            <code className="rounded bg-foreground/8 px-1.5 py-0.5 font-mono text-xs">gcloud auth application-default login</code>
+            Grant the role <strong>Monitoring Viewer</strong> (read-only — Aimdall cannot change anything in your project).
           </span>
         </li>
         <li className="flex gap-3">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">5</span>
-          <span>Paste your Project ID below</span>
+          <span>
+            Open the new service account → <strong>Keys → Add key → Create new key → JSON</strong>. The file downloads automatically.
+          </span>
+        </li>
+        <li className="flex gap-3">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">6</span>
+          <span>Open the file in a text editor, copy its full contents, paste below.</span>
+        </li>
+        <li className="flex gap-3">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-bold">7</span>
+          <span>After connecting, <strong>delete the JSON file from your computer</strong> — Aimdall has it encrypted at rest.</span>
         </li>
       </ol>
 
-      <div className="rounded-lg bg-foreground/[0.03] px-4 py-3 text-xs text-foreground/50">
-        <strong className="text-foreground/70">Least privilege:</strong> <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono">roles/monitoring.viewer</code> is read-only and is the smallest predefined role that covers what Aimdall needs. Note that personal ADC credentials carry your full account permissions — for tighter isolation, create a dedicated service account with only this role.
-      </div>
-
       <form onSubmit={(e) => { e.preventDefault(); onConnect(); }} className="space-y-4">
         <div>
-          <label htmlFor="gemini-projectId" className="mb-1.5 block text-sm font-medium">
-            Project ID
+          <label htmlFor="gemini-serviceAccountJson" className="mb-1.5 block text-sm font-medium">
+            Service Account JSON
           </label>
-          <input
-            id="gemini-projectId"
-            type="text"
-            name="projectId"
-            placeholder="my-gcp-project-id"
+          <textarea
+            id="gemini-serviceAccountJson"
+            name="serviceAccountJson"
+            rows={12}
+            placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  "private_key_id": "...",\n  ...\n}'}
             required
-            onChange={(e) => onCredentialChange('projectId', e.target.value)}
-            className="w-full rounded-xl border border-foreground/15 bg-foreground/[0.03] px-4 py-2.5 text-sm placeholder:text-foreground/30 focus:border-foreground/30 focus:outline-none"
+            onChange={(e) => onCredentialChange('serviceAccountJson', e.target.value)}
+            className="w-full rounded-xl border border-foreground/15 bg-foreground/[0.03] px-4 py-2.5 font-mono text-xs placeholder:text-foreground/30 focus:border-foreground/30 focus:outline-none resize-none"
           />
           <p className="mt-1.5 text-xs text-foreground/40">
-            Found at the top of your Google Cloud Console. Looks like <code className="rounded bg-foreground/8 px-1 py-0.5 font-mono">my-project-123</code>
+            Your service account JSON is encrypted before storage and is only used to read usage metrics from Google Cloud Monitoring. It is never logged or shared.
           </p>
         </div>
 

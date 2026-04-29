@@ -31,7 +31,7 @@ export const SERIES_COLORS = [
 ];
 
 // =============================================================================
-// SECTION 2: TOOLTIP
+// SECTION 2: CHART TOOLTIP
 // =============================================================================
 
 type TooltipPayloadItem = {
@@ -97,6 +97,13 @@ export type SpendAreaChartProps = {
   isGrouped: boolean;
   granularity: 'daily' | 'weekly' | 'monthly';
   onLegendClick: (groupKey: string) => void;
+  /**
+   * Optional anomaly dot overlay. Pass a component reference (created in a
+   * _containers/ file) that accepts RechartsCustomizedProps. Recharts will
+   * inject chart-internal coordinate props at render time.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AnomalyLayer?: React.ComponentType<any>;
 };
 
 export function SpendAreaChart({
@@ -105,6 +112,7 @@ export function SpendAreaChart({
   isGrouped,
   granularity,
   onLegendClick,
+  AnomalyLayer,
 }: SpendAreaChartProps) {
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -173,6 +181,7 @@ export function SpendAreaChart({
             activeDot={{ r: 3, strokeWidth: 0 }}
           />
         ))}
+        {AnomalyLayer && <AnomalyLayer />}
       </AreaChart>
     </ResponsiveContainer>
   );

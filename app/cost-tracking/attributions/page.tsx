@@ -14,6 +14,7 @@ import type {
   CoverageResult,
   DiscoverySuggestion,
 } from '@/modules/cost-tracking/domain/types';
+import { resolveSelectedPeriod } from '@/modules/cost-tracking/domain/types';
 import {
   createGroupAction,
   updateGroupAction,
@@ -98,21 +99,41 @@ async function previewRuleFormAction(formData: FormData): Promise<void> {
 // PAGE
 // =============================================================================
 
-export default async function AttributionsPage() {
+type SearchParams = Promise<{
+  period?: string;
+  from?: string;
+  to?: string;
+}>;
+
+export default async function AttributionsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   // ---------------------------------------------------------------------------
-  // 1. PARALLEL DATA FETCHING
+  // 1. RESOLVE PERIOD — unified URL contract: `period` + optional `from`/`to`
+  // ---------------------------------------------------------------------------
+  const params = await searchParams;
+  const { startDate, endDate } = resolveSelectedPeriod({
+    period: params.period,
+    from: params.from,
+    to: params.to,
+  });
+
+  // ---------------------------------------------------------------------------
+  // 2. PARALLEL DATA FETCHING
   // ---------------------------------------------------------------------------
   const [summaryResult, groupsResult, usersResult, credentialsResult, coverageResult, suggestionsResult] = await Promise.all([
-    getAttributionSummary({ startDate: new Date(0) }),
+    getAttributionSummary({ startDate, endDate }),
     listAttributionGroups({}),
     listUsers(),
     listCredentials(),
-    getAttributionCoverage({ startDate: new Date(0) }),
+    getAttributionCoverage({ startDate, endDate }),
     getAutoDiscoverySuggestions({}),
   ]);
 
   // ---------------------------------------------------------------------------
-  // 2. ERROR HANDLING
+  // 3. ERROR HANDLING
   // ---------------------------------------------------------------------------
   if (!summaryResult.success) {
     return <AttributionsErrorView message={`Failed to load attribution summary: ${summaryResult.error.message}`} />;
@@ -140,7 +161,7 @@ export default async function AttributionsPage() {
   const suggestions: DiscoverySuggestion[] = suggestionsResult.success ? suggestionsResult.value : [];
 
   // ---------------------------------------------------------------------------
-  // 3. FETCH RULES PER GROUP IN PARALLEL
+  // 4. FETCH RULES PER GROUP IN PARALLEL
   // ---------------------------------------------------------------------------
   const rulesMap: Record<string, AttributionRule[]> = Object.fromEntries(
     await Promise.all(
@@ -152,14 +173,14 @@ export default async function AttributionsPage() {
   );
 
   // ---------------------------------------------------------------------------
-  // 4. SORT SUMMARY BY COST DESCENDING
+  // 5. SORT SUMMARY BY COST DESCENDING
   // ---------------------------------------------------------------------------
   const sortedSummary = [...summaryRows].sort(
     (a, b) => parseFloat(b.totalCost) - parseFloat(a.totalCost),
   );
 
   // ---------------------------------------------------------------------------
-  // 5. DELEGATE RENDERING
+  // 6. DELEGATE RENDERING
   // ---------------------------------------------------------------------------
   return (
     <AttributionDashboard

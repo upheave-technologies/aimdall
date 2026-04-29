@@ -253,7 +253,7 @@ export function ReportView({
       : 0;
 
   return (
-    <main className="mx-auto max-w-4xl px-8 py-8">
+    <div className="mx-auto max-w-4xl">
       {/* ----------------------------------------------------------------- */}
       {/* Report header                                                      */}
       {/* ----------------------------------------------------------------- */}
@@ -600,6 +600,6 @@ export function ReportView({
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }

@@ -15,6 +15,7 @@
 // =============================================================================
 
 import { Result } from '@/packages/shared/lib/result';
+import { parseServiceAccountJson } from '../domain/serviceAccountCredential';
 import { makeOpenAIUsageClient } from '../infrastructure/providers/openaiUsageClient';
 import { makeAnthropicUsageClient } from '../infrastructure/providers/anthropicUsageClient';
 import { makeVertexUsageClient } from '../infrastructure/providers/vertexUsageClient';
@@ -27,6 +28,13 @@ import { CostTrackingError } from './costTrackingError';
 
 export type TestProviderConnectionInput = {
   providerSlug: string;
+  /**
+   * Provider-specific credentials (not persisted — used only for the probe):
+   *   openai        → { apiKey: string }
+   *   anthropic     → { adminApiKey: string }
+   *   google_vertex → { serviceAccountJson: string }  (raw GCP Service Account JSON)
+   *   google_gemini → { serviceAccountJson: string }  (raw GCP Service Account JSON)
+   */
   credentials: Record<string, string>;
 };
 
@@ -103,35 +111,46 @@ export const makeTestProviderConnectionUseCase = () => {
         }
 
         case 'google_vertex': {
-          const projectId = data.credentials.projectId;
-          if (!projectId) {
+          const rawJson = data.credentials.serviceAccountJson;
+          if (!rawJson) {
             return {
               success: false,
               error: new CostTrackingError(
-                'Missing required credential: projectId',
+                'Missing required credential: serviceAccountJson',
                 'VALIDATION_ERROR',
               ),
             };
           }
-          testConnection = makeVertexUsageClient(projectId).testConnection;
+          const parseResult = parseServiceAccountJson(rawJson);
+          if (!parseResult.success) {
+            return {
+              success: false,
+              error: new CostTrackingError(parseResult.error.message, 'VALIDATION_ERROR'),
+            };
+          }
+          testConnection = makeVertexUsageClient(parseResult.value).testConnection;
           break;
         }
 
         case 'google_gemini': {
-          const projectId = data.credentials.projectId;
-          if (!projectId) {
+          const rawJson = data.credentials.serviceAccountJson;
+          if (!rawJson) {
             return {
               success: false,
               error: new CostTrackingError(
-                'Missing required credential: projectId',
+                'Missing required credential: serviceAccountJson',
                 'VALIDATION_ERROR',
               ),
             };
           }
-          testConnection = makeGeminiUsageClient({
-            projectId,
-            apiKey: data.credentials.apiKey,
-          }).testConnection;
+          const parseResult = parseServiceAccountJson(rawJson);
+          if (!parseResult.success) {
+            return {
+              success: false,
+              error: new CostTrackingError(parseResult.error.message, 'VALIDATION_ERROR'),
+            };
+          }
+          testConnection = makeGeminiUsageClient(parseResult.value).testConnection;
           break;
         }
       }

@@ -87,10 +87,9 @@ export function DashboardSkeleton({ syncingProviderNames }: DashboardSkeletonPro
         }
       `}</style>
 
-      <main
+      <div
         role="status"
         aria-live="polite"
-        className="mx-auto max-w-7xl px-8 py-8"
       >
         {/* ----------------------------------------------------------------- */}
         {/* Status message                                                      */}
@@ -239,7 +238,7 @@ export function DashboardSkeleton({ syncingProviderNames }: DashboardSkeletonPro
             ))}
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { UsageSummaryRow, DailySpendRow, ProviderSyncState } from '@/modules/cost-tracking/domain/types';
 import { SyncButtonContainer } from '../_containers/SyncButtonContainer';
-import { DateRangeFilterContainer } from '../_containers/DateRangeFilterContainer';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { SyncStatusPoller } from '../_containers/SyncStatusPoller';
 import { ConnectedToast } from '../_containers/ConnectedToast';
@@ -110,6 +109,8 @@ export type DashboardViewProps = {
   filterLabel: string | null;
   forecast: DashboardForecast;
   unassignedSpend: DashboardUnassignedSpend;
+  /** Full-history unassigned spend — used exclusively for the >5% banner alert (RFC § 3.7). */
+  unassignedSpendAllTime: DashboardUnassignedSpend;
   anomalies: DashboardAnomalies;
   budgets: DashboardBudgets;
   hasProviders: boolean;
@@ -219,7 +220,7 @@ function SeverityBadge({ severity }: { severity: 'critical' | 'high' | 'medium' 
 
 function EmptyState() {
   return (
-    <main className="mx-auto max-w-3xl px-8 py-16">
+    <div className="mx-auto max-w-3xl py-10">
       {/* Hero section */}
       <div className="text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/5">
@@ -298,7 +299,7 @@ function EmptyState() {
           ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -307,7 +308,7 @@ function EmptyState() {
 // ---------------------------------------------------------------------------
 
 
-export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, anomalies, budgets, hasProviders, anySyncing, providerSyncItems, connectedSlug }: DashboardViewProps) {
+export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, forecast, unassignedSpend, unassignedSpendAllTime, anomalies, budgets, hasProviders, anySyncing, providerSyncItems, connectedSlug }: DashboardViewProps) {
   // Compute totals
   const mtdSpend = mtdSummary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
   const filteredSpend = summary.byProvider.reduce((sum, row) => sum + parseFloat(row.totalCost), 0);
@@ -333,8 +334,8 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
     </>
   );
 
-  // State 2: Providers connected, sync in progress.
-  if (anySyncing) {
+  // State 2a: Providers connected, sync in progress, NO data yet — show full skeleton.
+  if (anySyncing && !hasData) {
     const syncingProviders = providerSyncItems.filter((p) => p.syncState === 'in_progress');
     const syncingNames = syncingProviders.map((p) => p.displayName);
     return (
@@ -363,10 +364,11 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthRange = `${monthStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
-  // Unassigned spend alert threshold
+  // Unassigned spend alert threshold — uses full-history data (RFC § 3.7 editorial opt-out).
+  // The >5% warning banner reflects all-time attribution coverage, not the selected period.
   const unassignedPct =
-    unassignedSpend && unassignedSpend.totalSpend > 0
-      ? (unassignedSpend.unassignedSpend / unassignedSpend.totalSpend) * 100
+    unassignedSpendAllTime && unassignedSpendAllTime.totalSpend > 0
+      ? (unassignedSpendAllTime.unassignedSpend / unassignedSpendAllTime.totalSpend) * 100
       : 0;
   const showUnassignedAlert = unassignedPct > 5;
 
@@ -427,10 +429,35 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
         .slice(0, 3)
     : [];
 
+  // Syncing banner (State 2b: has data but sync is in progress).
+  const syncingProviders = providerSyncItems.filter((p) => p.syncState === 'in_progress');
+  const syncingNames = syncingProviders.map((p) => p.displayName);
+
   return (
     <>
       {pollerAndToast}
-      <main className="mx-auto max-w-7xl px-8 py-8">
+      <div>
+      {/* ----------------------------------------------------------------- */}
+      {/* Sync-in-progress banner (non-blocking — only when data exists)     */}
+      {/* ----------------------------------------------------------------- */}
+      {anySyncing && syncingNames.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 dark:border-blue-900/40 dark:bg-blue-950/20">
+          <div className="flex items-center gap-3">
+            <svg
+              className="h-4 w-4 shrink-0 animate-spin text-blue-500 dark:text-blue-400"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-sm text-blue-800 dark:text-blue-200">
+              Syncing {syncingNames.join(', ')}&hellip; New data will appear automatically.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ----------------------------------------------------------------- */}
       {/* Header                                                             */}
       {/* ----------------------------------------------------------------- */}
@@ -442,7 +469,6 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <DateRangeFilterContainer />
           <SyncButtonContainer />
         </div>
       </div>
@@ -543,7 +569,7 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
       {/* ----------------------------------------------------------------- */}
       {/* Unassigned spend alert                                             */}
       {/* ----------------------------------------------------------------- */}
-      {showUnassignedAlert && unassignedSpend && (
+      {showUnassignedAlert && unassignedSpendAllTime && (
         <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 rounded-xl bg-amber-100 p-2 dark:bg-amber-900/30">
@@ -553,11 +579,11 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-amber-900 dark:text-amber-100">
-                {formatCurrency(unassignedSpend.unassignedSpend)} is unattributed
+                {formatCurrency(unassignedSpendAllTime.unassignedSpend)} is unattributed
               </div>
               <div className="mt-0.5 text-sm text-amber-800/70 dark:text-amber-200/60">
-                {unassignedSpend.unassignedCredentials.length}{' '}
-                {unassignedSpend.unassignedCredentials.length === 1 ? 'API key has' : 'API keys have'} spend but no team or project assignment. This spend is invisible to your finance team.
+                {unassignedSpendAllTime.unassignedCredentials.length}{' '}
+                {unassignedSpendAllTime.unassignedCredentials.length === 1 ? 'API key has' : 'API keys have'} spend but no team or project assignment. This spend is invisible to your finance team.
               </div>
             </div>
             <Link
@@ -770,7 +796,7 @@ export function DashboardView({ summary, mtdSummary, hasFilter, filterLabel, for
           </div>
         </div>
       )}
-    </main>
+    </div>
     </>
   );
 }

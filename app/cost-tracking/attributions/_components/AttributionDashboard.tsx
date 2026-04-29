@@ -88,7 +88,7 @@ export function AttributionDashboard({
   const breakdown = coverage?.unattributedBreakdown ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -156,6 +156,6 @@ export function AttributionDashboard({
         applyTemplateAction={applyTemplateAction}
         previewRuleAction={previewRuleAction}
       />
-    </main>
+    </div>
   );
 }

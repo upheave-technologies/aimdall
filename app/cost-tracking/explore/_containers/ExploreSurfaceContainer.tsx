@@ -4,15 +4,14 @@
 // ExploreSurfaceContainer — Root client container for the Explore surface
 // =============================================================================
 // Responsibilities:
-//   1. Hold ephemeral UI state (time picker open, custom date inputs)
-//   2. Handle all URL navigation (groupBy, filters, time, pagination)
-//   3. Compute derived display state (dimension pill states, isDirty)
-//   4. Return a single <ExploreSurface /> call — no raw JSX markup here
+//   1. Handle all URL navigation (groupBy, filters, pagination)
+//   2. Compute derived display state (dimension pill states, isDirty)
+//   3. Return a single <ExploreSurface /> call — no raw JSX markup here
 //
+// Period selection is handled exclusively by the layout-level PeriodSelector.
 // Never fetches data. Never defines server actions.
 // =============================================================================
 
-import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type {
   ExplorerDimension,
@@ -50,12 +49,9 @@ type UnassignedCredential = {
 };
 
 type ExploreSurfaceContainerProps = {
-  timePreset: string;
   granularity: 'daily' | 'weekly' | 'monthly';
   groupBy: ExplorerDimension | undefined;
   filters: FilterItem[];
-  startDateStr: string;
-  endDateStr: string;
   page: number;
   rows: ExplorerResultRow[];
   timeSeries: TimeSeriesPoint[];
@@ -77,12 +73,9 @@ type ExploreSurfaceContainerProps = {
 // =============================================================================
 
 export function ExploreSurfaceContainer({
-  timePreset,
   granularity,
   groupBy,
   filters,
-  startDateStr,
-  endDateStr,
   page,
   rows,
   timeSeries,
@@ -100,10 +93,6 @@ export function ExploreSurfaceContainer({
 }: ExploreSurfaceContainerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
-  const [customFrom, setCustomFrom] = useState(startDateStr);
-  const [customTo, setCustomTo] = useState(endDateStr);
 
   // -------------------------------------------------------------------------
   // URL mutation helper
@@ -165,28 +154,6 @@ export function ExploreSurfaceContainer({
     );
   }
 
-  function handleTimePresetSelect(preset: string) {
-    if (preset === 'custom') {
-      router.push(buildUrl({ time: 'custom', from: customFrom, to: customTo, page: null }));
-    } else {
-      router.push(buildUrl({ time: preset, from: null, to: null, page: null }));
-    }
-  }
-
-  function handleCustomFromChange(val: string) {
-    setCustomFrom(val);
-    if (val && customTo) {
-      router.push(buildUrl({ time: 'custom', from: val, to: customTo, page: null }));
-    }
-  }
-
-  function handleCustomToChange(val: string) {
-    setCustomTo(val);
-    if (customFrom && val) {
-      router.push(buildUrl({ time: 'custom', from: customFrom, to: val, page: null }));
-    }
-  }
-
   function handleReset() {
     router.push('/cost-tracking/explore');
   }
@@ -224,7 +191,7 @@ export function ExploreSurfaceContainer({
     };
   });
 
-  const isDirty = !!groupBy || filters.length > 0 || timePreset !== '30d';
+  const isDirty = !!groupBy || filters.length > 0;
   const groupByLabel = groupBy ? DIMENSION_LABELS[groupBy] : undefined;
 
   const { hasOther, totalGroupCount } = getChartMetrics(timeSeries, granularity, !!groupBy);
@@ -241,15 +208,6 @@ export function ExploreSurfaceContainer({
   return (
     <ExploreSurface
       dimensionBar={{
-        timePreset,
-        isTimePickerOpen,
-        onTimePillClick: () => setIsTimePickerOpen((v) => !v),
-        onTimePickerClose: () => setIsTimePickerOpen(false),
-        onTimePresetSelect: handleTimePresetSelect,
-        customFrom,
-        customTo,
-        onCustomFromChange: handleCustomFromChange,
-        onCustomToChange: handleCustomToChange,
         dimensions: dimensionStates,
         onGroupByToggle: handleGroupByToggle,
         onClearFilter: handleClearFilter,

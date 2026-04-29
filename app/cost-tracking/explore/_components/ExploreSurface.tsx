@@ -118,9 +118,12 @@ export function ExploreSurface({
 }: ExploreSurfaceProps) {
   return (
     <div className="min-h-screen">
-      <DimensionBar {...dimensionBar} />
+      {/* Full-bleed sticky bar — escapes the layout shell's max-w constraint */}
+      <div className="-mx-6 sm:-mx-8">
+        <DimensionBar {...dimensionBar} />
+      </div>
 
-      <div className="mx-auto max-w-7xl space-y-8 px-6 py-6">
+      <div className="space-y-8 py-6">
         {/* Zone 1: KPI Summary */}
         <SummaryStrip
           totalCost={totalCost}

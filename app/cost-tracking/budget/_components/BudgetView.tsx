@@ -160,7 +160,7 @@ export function BudgetView({ budgets, forecast, createAction, deleteAction }: Bu
       : 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-8 py-8">
+    <div className="mx-auto max-w-5xl">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Budgets & Forecasting</h1>
@@ -394,6 +394,6 @@ export function BudgetView({ budgets, forecast, createAction, deleteAction }: Bu
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

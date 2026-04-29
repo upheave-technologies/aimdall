@@ -38,43 +38,6 @@ export type AlertsViewProps = {
 };
 
 // ---------------------------------------------------------------------------
-// Window segments
-// ---------------------------------------------------------------------------
-
-const WINDOW_SEGMENTS = [
-  { days: 30,  label: '1M', longLabel: '1 month'  },
-  { days: 90,  label: '3M', longLabel: '3 months' },
-  { days: 180, label: '6M', longLabel: '6 months' },
-] as const;
-
-function windowLongLabel(days: number): string {
-  return WINDOW_SEGMENTS.find((s) => s.days === days)?.longLabel ?? `${days} days`;
-}
-
-function WindowToggle({ analysisDays }: { analysisDays: number }) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-xl bg-foreground/[0.06] p-0.5">
-      {WINDOW_SEGMENTS.map((seg) => {
-        const isActive = analysisDays === seg.days;
-        return (
-          <Link
-            key={seg.days}
-            href={`?window=${seg.days}`}
-            className={
-              isActive
-                ? 'rounded-lg bg-foreground/10 px-3 py-1 text-xs font-semibold text-foreground/90'
-                : 'rounded-lg px-3 py-1 text-xs font-medium text-foreground/40 hover:text-foreground/70 transition-colors'
-            }
-          >
-            {seg.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Formatters
 // ---------------------------------------------------------------------------
 
@@ -195,7 +158,7 @@ function AnomalyCard({ anomaly }: { anomaly: SpendAnomaly }) {
 // Empty state
 // ---------------------------------------------------------------------------
 
-function EmptyState({ analysisDays, providersAnalyzed }: { analysisDays: number; providersAnalyzed: number }) {
+function EmptyState({ providersAnalyzed }: { providersAnalyzed: number }) {
   return (
     <div className="rounded-2xl border-2 border-dashed border-foreground/10 p-16 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950/30">
@@ -205,7 +168,7 @@ function EmptyState({ analysisDays, providersAnalyzed }: { analysisDays: number;
       </div>
       <h3 className="text-base font-semibold">No anomalies detected</h3>
       <p className="mt-1 text-sm text-foreground/50">
-        Your spending patterns look normal. We analyzed the last {windowLongLabel(analysisDays)} of data across {providersAnalyzed} {providersAnalyzed === 1 ? 'provider' : 'providers'}.
+        Your spending patterns look normal. We analyzed 90 days of history across {providersAnalyzed} {providersAnalyzed === 1 ? 'provider' : 'providers'}.
       </p>
       <p className="mt-3 text-xs text-foreground/40">
         Anomalies are flagged when daily spend exceeds 1.5x the trailing average.
@@ -229,28 +192,25 @@ export function AlertsView({ anomalies }: AlertsViewProps) {
   const uniqueProviders = new Set(anomalies.anomalies.map((a) => a.providerSlug)).size;
 
   return (
-    <main className="mx-auto max-w-4xl px-8 py-8">
+    <div className="mx-auto max-w-4xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Spend Alerts</h1>
-            {anomalies.anomalies.length > 0 && (
-              <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                {anomalies.anomalies.length} active
-              </span>
-            )}
-          </div>
-          <WindowToggle analysisDays={anomalies.analysisDays} />
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Spend Alerts</h1>
+          {anomalies.anomalies.length > 0 && (
+            <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-300">
+              {anomalies.anomalies.length} active
+            </span>
+          )}
         </div>
         <p className="mt-1 text-sm text-foreground/50">
           Statistical anomaly detection across {anomalies.providersAnalyzed}{' '}
-          {anomalies.providersAnalyzed === 1 ? 'provider' : 'providers'} · {windowLongLabel(anomalies.analysisDays)} of history
+          {anomalies.providersAnalyzed === 1 ? 'provider' : 'providers'}
         </p>
       </div>
 
       {anomalies.anomalies.length === 0 ? (
-        <EmptyState analysisDays={anomalies.analysisDays} providersAnalyzed={anomalies.providersAnalyzed} />
+        <EmptyState providersAnalyzed={anomalies.providersAnalyzed} />
       ) : (
         <>
           {/* Summary row */}
@@ -259,7 +219,7 @@ export function AlertsView({ anomalies }: AlertsViewProps) {
               <span className="font-semibold">{anomalies.anomalies.length}</span>{' '}
               {anomalies.anomalies.length === 1 ? 'anomaly' : 'anomalies'} detected across{' '}
               <span className="font-semibold">{uniqueProviders}</span>{' '}
-              {uniqueProviders === 1 ? 'provider' : 'providers'} in the last {windowLongLabel(anomalies.analysisDays)}.
+              {uniqueProviders === 1 ? 'provider' : 'providers'}.
             </p>
           </div>
 
@@ -271,6 +231,6 @@ export function AlertsView({ anomalies }: AlertsViewProps) {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

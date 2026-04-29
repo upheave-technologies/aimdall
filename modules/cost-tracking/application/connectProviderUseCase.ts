@@ -23,6 +23,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { Result } from '@/packages/shared/lib/result';
 import { Provider } from '../domain/provider';
 import { ProviderCredential, CredentialType } from '../domain/providerCredential';
+import { parseServiceAccountJson } from '../domain/serviceAccountCredential';
 import { IProviderRepository, IProviderCredentialRepository } from '../domain/repositories';
 import { encrypt } from '../infrastructure/encryption';
 import { CostTrackingError } from './costTrackingError';
@@ -37,6 +38,13 @@ import { db } from '@/lib/db';
 export type ConnectProviderInput = {
   providerSlug: string;
   displayName: string;
+  /**
+   * Provider-specific credentials:
+   *   openai        → { apiKey: string }
+   *   anthropic     → { adminApiKey: string }
+   *   google_vertex → { serviceAccountJson: string }  (raw GCP Service Account JSON)
+   *   google_gemini → { serviceAccountJson: string }  (raw GCP Service Account JSON)
+   */
   credentials: Record<string, string>;
   label?: string;
 };
@@ -125,6 +133,13 @@ export const makeConnectProviderUseCase = (
     let secret: string;
     let credentialType: CredentialType;
     let externalId: string;
+    /**
+     * keyHint — a short, safe display string shown in the UI to identify this
+     * credential without revealing the full secret.
+     *   API key providers: last 4 chars of the key (e.g. "k3yA")
+     *   GCP providers:     client_email address from the service account JSON
+     */
+    let keyHint: string;
 
     switch (slug) {
       case 'openai': {
@@ -137,8 +152,8 @@ export const makeConnectProviderUseCase = (
         }
         secret = apiKey;
         credentialType = 'api_key';
-        const hint = apiKey.slice(-4);
-        externalId = `key_hint:${hint}`;
+        keyHint = apiKey.slice(-4);
+        externalId = `key_hint:${keyHint}`;
         break;
       }
 
@@ -155,42 +170,74 @@ export const makeConnectProviderUseCase = (
         }
         secret = adminApiKey;
         credentialType = 'admin_api_key';
-        const hint = adminApiKey.slice(-4);
-        externalId = `key_hint:${hint}`;
+        keyHint = adminApiKey.slice(-4);
+        externalId = `key_hint:${keyHint}`;
         break;
       }
 
       case 'google_vertex': {
-        const projectId = data.credentials.projectId;
-        if (!projectId) {
+        const rawJson = data.credentials.serviceAccountJson;
+        if (!rawJson) {
           return {
             success: false,
             error: new CostTrackingError(
-              'Missing required credential: projectId',
+              'Missing required credential: serviceAccountJson',
               'VALIDATION_ERROR',
             ),
           };
         }
-        secret = projectId;
+        const parseResult = parseServiceAccountJson(rawJson);
+        if (!parseResult.success) {
+          return {
+            success: false,
+            error: new CostTrackingError(parseResult.error.message, 'VALIDATION_ERROR'),
+          };
+        }
+        const sa = parseResult.value;
+        // Store the raw (trimmed) JSON string as the encrypted secret.
+        secret = rawJson.trim();
         credentialType = 'service_account';
-        externalId = projectId;
+        // externalId identifies this GCP project for this provider.
+        externalId = sa.project_id;
+        // Use client_email so the UI can display "connected as <email>".
+        keyHint = sa.client_email;
+        logger.info('connectProvider.google_vertex.parsed', {
+          projectId: sa.project_id,
+          clientEmail: sa.client_email,
+        });
         break;
       }
 
       case 'google_gemini': {
-        const projectId = data.credentials.projectId;
-        if (!projectId) {
+        const rawJson = data.credentials.serviceAccountJson;
+        if (!rawJson) {
           return {
             success: false,
             error: new CostTrackingError(
-              'Missing required credential: projectId',
+              'Missing required credential: serviceAccountJson',
               'VALIDATION_ERROR',
             ),
           };
         }
-        secret = projectId;
+        const parseResult = parseServiceAccountJson(rawJson);
+        if (!parseResult.success) {
+          return {
+            success: false,
+            error: new CostTrackingError(parseResult.error.message, 'VALIDATION_ERROR'),
+          };
+        }
+        const sa = parseResult.value;
+        // Store the raw (trimmed) JSON string as the encrypted secret.
+        secret = rawJson.trim();
         credentialType = 'service_account';
-        externalId = projectId;
+        // externalId identifies this GCP project for this provider.
+        externalId = sa.project_id;
+        // Use client_email so the UI can display "connected as <email>".
+        keyHint = sa.client_email;
+        logger.info('connectProvider.google_gemini.parsed', {
+          projectId: sa.project_id,
+          clientEmail: sa.client_email,
+        });
         break;
       }
     }
@@ -209,9 +256,6 @@ export const makeConnectProviderUseCase = (
         ),
       };
     }
-
-    // 5. Compute keyHint
-    const keyHint = secret.slice(-4);
 
     // 6. Build and persist the credential
     const now = new Date();

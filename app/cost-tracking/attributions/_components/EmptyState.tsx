@@ -100,7 +100,7 @@ export function EmptyState({
   dismissSuggestionAction,
 }: EmptyStateProps) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 text-center">
+    <div className="mx-auto max-w-3xl py-10 text-center">
       {/* Header link */}
       <div className="mb-12 text-left">
         <Link
@@ -168,6 +168,6 @@ export function EmptyState({
           Create group manually
         </span>
       </p>
-    </main>
+    </div>
   );
 }
